@@ -1,8 +1,7 @@
 import { randomUUID } from 'crypto';
-import { Socket } from 'socket.io';
-import { Player } from '../interfaces/Player.interface';
 import { Room } from '../interfaces/Room.interface';
 import { getPlayerById } from './player.service';
+import { logger } from '../utils/logger';
 
 const rooms: Room[] = [];
 
@@ -15,6 +14,8 @@ export const generateRoomName = (roomId: string) => {
 };
 
 export const createRoom = () => {
+  logger.info('room.service - Creating a new room...');
+
   const roomId = generateRoomId();
   const roomName = generateRoomName(roomId);
 
@@ -23,16 +24,20 @@ export const createRoom = () => {
     name: roomName,
     players: [],
   };
+  logger.info(`room.service - New room created with ID: ${roomId} and Name: ${roomName}`);
 
   rooms.push(room);
   return room;
 };
 
 export const joinRoom = (roomId: string, playerId: string) => {
+  logger.info(`room.service - Player ${playerId} is joining room ${roomId}`);
+
   const room = rooms.find(r => r.id === roomId);
   const player = getPlayerById(playerId);
   if (room && player) {
     room.players.push(player);
+    logger.info(`room.service - Player ${player.name} joined room ${roomId}`);
     return room; // Return the updated room
   }
   return null; // Room not found
@@ -40,5 +45,6 @@ export const joinRoom = (roomId: string, playerId: string) => {
 
 // get rooms
 export const getRooms = () => {
+  logger.info('room.service - Fetching all rooms...');
   return rooms;
 };

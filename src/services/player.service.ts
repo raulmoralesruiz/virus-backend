@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Player } from '../interfaces/Player.interface';
+import { logger } from '../utils/logger';
 
 const players: Player[] = [];
 
@@ -8,6 +9,8 @@ export const generatePlayerId = () => {
 };
 
 export const createPlayer = (name: string): Player => {
+  logger.info(`player.service - Creating player with name: ${name}`);
+
   const player: Player = {
     id: generatePlayerId(),
     name,

@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 
 import registerSockets from './sockets';
 import { socketConfig } from './config/socket.config';
+import { logger } from './utils/logger';
 
 const app = express();
 const httpServer = createServer(app);
@@ -17,5 +18,5 @@ app.get('/health', (_req, res) => {
 
 const PORT = 3000;
 httpServer.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  logger.info(`Servidor escuchando en http://localhost:${PORT}`);
 });
