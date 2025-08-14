@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { startGame } from '../services/game.service';
+import { startGame } from '../services/game.service.js';
 
 const registerGameEvents = (io: Server, socket: Socket) => {
   socket.on('game:start', (roomId: string) => {

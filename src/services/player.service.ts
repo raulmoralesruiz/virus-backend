@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { Player } from '../interfaces/Player.interface';
-import { logger } from '../utils/logger';
+import { Player } from '../interfaces/Player.interface.js';
+import { logger } from '../utils/logger.js';
 
 const players: Player[] = [];
 
@@ -8,6 +8,12 @@ export const generatePlayerId = () => {
   return randomUUID();
 };
 
+// CRUD operations for players
+/**
+ * Creates a new player with a unique ID and the provided name.
+ * @param name - The name of the player.
+ * @returns The created player object.
+ */
 export const createPlayer = (name: string): Player => {
   logger.info(`player.service - Creating player with name: ${name}`);
 
@@ -20,8 +26,21 @@ export const createPlayer = (name: string): Player => {
   return player;
 };
 
-export const getPlayerById = (id: string): Player | undefined => {
-  return players.find(player => player.id === id);
+/**
+ * Retrieves all players.
+ * @returns An array of all player objects.
+ */
+export const getAllPlayers = (): Player[] => {
+  return players;
+};
+
+/**
+ * Retrieves a player by their ID.
+ * @param id - The ID of the player to retrieve.
+ * @returns The player object if found, otherwise null.
+ */
+export const getPlayerById = (id: string): Player | null => {
+  return players.find(player => player.id === id) ?? null;
 };
 
 export const removePlayer = (id: string): void => {
@@ -31,6 +50,5 @@ export const removePlayer = (id: string): void => {
   }
 };
 
-export const getAllPlayers = (): Player[] => {
-  return players;
-};
+// util para tests/manual
+export const _playersStore = () => players;

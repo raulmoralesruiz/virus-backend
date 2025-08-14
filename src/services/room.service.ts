@@ -1,13 +1,11 @@
 import { randomUUID } from 'crypto';
-import { Room } from '../interfaces/Room.interface';
-import { getPlayerById } from './player.service';
-import { logger } from '../utils/logger';
+import { Room } from '../interfaces/Room.interface.js';
+import { getPlayerById } from './player.service.js';
+import { logger } from '../utils/logger.js';
 
 const rooms: Room[] = [];
 
-export const generateRoomId = () => {
-  return randomUUID();
-};
+export const generateRoomId = () => randomUUID();
 
 export const generateRoomName = (roomId: string) => {
   return `Sala-${roomId.slice(0, 6)}`;
@@ -35,12 +33,12 @@ export const joinRoom = (roomId: string, playerId: string) => {
 
   const room = rooms.find(r => r.id === roomId);
   const player = getPlayerById(playerId);
-  if (room && player) {
-    room.players.push(player);
-    logger.info(`room.service - Player ${player.name} joined room ${roomId}`);
-    return room; // Return the updated room
-  }
-  return null; // Room not found
+  if (!room || !player) return null;
+
+  const already = room.players.some(p => p.id === player.id);
+  if (!already) room.players.push(player);
+
+  return room;
 };
 
 // get rooms
@@ -48,3 +46,9 @@ export const getRooms = () => {
   logger.info('room.service - Fetching all rooms...');
   return rooms;
 };
+
+export const getRoomById = (roomId: string): Room | null =>
+  rooms.find(r => r.id === roomId) ?? null;
+
+// util para tests/manual
+export const _roomsStore = () => rooms;

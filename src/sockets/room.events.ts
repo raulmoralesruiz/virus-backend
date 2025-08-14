@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
-import { createRoom, getRooms, joinRoom } from '../services/room.service';
-import { ROOM_CONSTANTS } from '../constants/room.constants';
-import { logger } from '../utils/logger';
+import { createRoom, getRooms, joinRoom } from '../services/room.service.js';
+import { ROOM_CONSTANTS } from '../constants/room.constants.js';
+import { logger } from '../utils/logger.js';
 
 const registerRoomEvents = (io: Server, socket: Socket) => {
   socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player }) => {

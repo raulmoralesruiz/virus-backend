@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
-import { createPlayer, getPlayerById } from '../services/player.service';
-import { logger } from '../utils/logger';
-import { PLAYER_CONSTANTS } from '../constants/player.constants';
+import { createPlayer, getPlayerById } from '../services/player.service.js';
+import { logger } from '../utils/logger.js';
+import { PLAYER_CONSTANTS } from '../constants/player.constants.js';
 
 const registerPlayerEvents = (io: Server, socket: Socket) => {
   logger.info(`Registrando eventos de jugador para el socket: ${socket.id}`);
@@ -27,14 +27,6 @@ const registerPlayerEvents = (io: Server, socket: Socket) => {
       logger.warn(`Jugador con ID ${id} no encontrado`);
     }
   });
-
-  // // Placeholder for player-related events
-  // socket.on('player:action', (action: any) => {
-  //   console.log(`Jugador ${socket.id} realizó una acción:`, action);
-
-  //   // Handle player action
-  //   io.emit('player:actionResponse', { playerId: socket.id, action });
-  // });
 };
 
 export default registerPlayerEvents;
