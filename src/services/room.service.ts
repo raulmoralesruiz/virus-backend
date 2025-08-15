@@ -45,7 +45,6 @@ export const joinRoom = (roomId: string, player: Player) => {
 // get rooms
 export const getRooms = () => {
   logger.info('room.service - Fetching all rooms...');
-  console.log(JSON.stringify(rooms));
   return rooms;
 };
 

@@ -12,7 +12,6 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
     // Create a new room
     const room = createRoom();
     joinRoom(room.id, player);
-    console.log(player.name, 'created room', room.id);
 
     socket.join(room.id);
     wsEmitter.emitRoomsList();
