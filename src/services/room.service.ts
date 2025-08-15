@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { Room } from '../interfaces/Room.interface.js';
 import { getPlayerById } from './player.service.js';
 import { logger } from '../utils/logger.js';
+import { Player } from '../interfaces/Player.interface.js';
 
 const rooms: Room[] = [];
 
@@ -28,11 +29,11 @@ export const createRoom = () => {
   return room;
 };
 
-export const joinRoom = (roomId: string, playerId: string) => {
-  logger.info(`room.service - Player ${playerId} is joining room ${roomId}`);
+export const joinRoom = (roomId: string, player: Player) => {
+  logger.info(`room.service - Player ${player.name} is joining room ${roomId}`);
+  logger.info(`joinRoom() - data player = ${JSON.stringify(player)}`);
 
   const room = rooms.find(r => r.id === roomId);
-  const player = getPlayerById(playerId);
   if (!room || !player) return null;
 
   const already = room.players.some(p => p.id === player.id);
@@ -44,11 +45,14 @@ export const joinRoom = (roomId: string, playerId: string) => {
 // get rooms
 export const getRooms = () => {
   logger.info('room.service - Fetching all rooms...');
+  console.log(JSON.stringify(rooms));
   return rooms;
 };
 
-export const getRoomById = (roomId: string): Room | null =>
-  rooms.find(r => r.id === roomId) ?? null;
+export const getRoomById = (roomId: string): Room | null => {
+  logger.info(`room.service - getRoomById ${roomId}`);
+  return rooms.find(r => r.id === roomId) ?? null;
+};
 
 // util para tests/manual
 export const _roomsStore = () => rooms;

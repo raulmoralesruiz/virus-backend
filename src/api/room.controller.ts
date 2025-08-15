@@ -31,6 +31,7 @@ router.post('/', (req, res) => {
 
   // Notificar a todos los clientes por WS
   wsEmitter.emitRoomsList();
+  wsEmitter.emitRoomUpdated(room.id);
 
   return res.json(joined);
 });
@@ -48,6 +49,8 @@ router.post('/join/:roomId', (req, res) => {
   if (!room) return res.status(404).json({ error: 'Room not found' });
 
   wsEmitter.emitRoomsList();
+  wsEmitter.emitRoomUpdated(room.id);
+
   return res.json(room);
 });
 
