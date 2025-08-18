@@ -31,7 +31,6 @@ export const createRoom = () => {
 
 export const joinRoom = (roomId: string, player: Player) => {
   logger.info(`room.service - Player ${player.name} is joining room ${roomId}`);
-  logger.info(`joinRoom() - data player = ${JSON.stringify(player)}`);
 
   const room = rooms.find(r => r.id === roomId);
   if (!room || !player) return null;

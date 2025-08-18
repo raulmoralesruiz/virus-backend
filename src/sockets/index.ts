@@ -17,7 +17,7 @@ export default function registerSockets(io: Server) {
 
     registerRoomEvents(io, socket);
     // registerPlayerEvents(io, socket);
-    // registerGameEvents(io, socket);
+    registerGameEvents(io, socket);
 
     socket.on('disconnect', () => {
       logger.info(`❌ Cliente desconectado: ${socket.id}`);
