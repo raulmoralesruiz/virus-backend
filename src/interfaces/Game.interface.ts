@@ -1,25 +1,25 @@
-// backend/src/interfaces/Game.interface.ts
 import { Card } from './Card.interface.js';
+import { Player } from './Player.interface.js';
 
 export interface PlayerState {
-  playerId: string;
+  player: Player;
   hand: Card[];
 }
 
 export interface PublicPlayerInfo {
-  playerId: string;
-  handCount: number; // no revelamos cartas
-  organs?: any; // placeholder: estructura futura del “cuerpo” en mesa
+  player: Player;
+  board: Card[]; // cartas visibles en mesa
+  handCount: number; // solo el número de cartas en mano, no cuáles son
 }
 
 export interface GameState {
   roomId: string;
   deck: Card[];
   discard: Card[];
-  players: PlayerState[]; // mano privada en servidor
+  players: PlayerState[]; // estado privado del servidor (mano real)
   public: {
-    players: PublicPlayerInfo[]; // info pública (tamaños de mano, órganos en mesa)
+    players: PublicPlayerInfo[]; // lo que ven todos
   };
   startedAt: string; // ISO string
-  // En el futuro: turno actual, fase, etc.
+  // futuro: turno actual, fase, etc.
 }

@@ -16,8 +16,8 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     // IMPORTANTE: asegúrate de que los sockets de los jugadores estén unidos al roomId
     // en tus eventos de unión de sala haces: socket.join(roomId)
 
-    const playerIds = room.players.map(p => p.id);
-    const game = startGame(roomId, playerIds);
+    const players = room.players;
+    const game = startGame(roomId, players);
 
     // Estado público para todos en la sala
     const publicState = getPublicState(roomId);
@@ -31,7 +31,7 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       socket.emit(GAME_CONSTANTS.GAME_HAND, { roomId, playerId: requesterPlayerId, hand });
     } else {
       // fallback: al menos enviamos la mano del primer jugador al solicitante
-      const firstId = playerIds[0];
+      const firstId = players[0].id;
       const hand = getPlayerHand(roomId, firstId) || [];
       socket.emit(GAME_CONSTANTS.GAME_HAND, { roomId, playerId: firstId, hand });
     }

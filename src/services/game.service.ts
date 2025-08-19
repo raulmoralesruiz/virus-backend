@@ -3,6 +3,7 @@ import { Card, CardColor, CardKind } from '../interfaces/Card.interface.js';
 import { GameState, PlayerState, PublicPlayerInfo } from '../interfaces/Game.interface.js';
 import { getRooms } from './room.service.js'; // ya existente en tu backend
 import { logger } from '../utils/logger.js';
+import { Player } from '../interfaces/Player.interface.js';
 
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
@@ -55,30 +56,33 @@ const buildDeck = (): Card[] => {
 };
 
 // Crea/inicia partida en una sala (si no existe)
-export const startGame = (roomId: string, playerIds: string[]): GameState => {
-  logger.info(`game.service - startGame room=${roomId} players=${playerIds.length}`);
+export const startGame = (roomId: string, players: Player[]): GameState => {
+  logger.info(`game.service - startGame room=${roomId} players=${players.length}`);
 
   // si ya existe, la reiniciamos (o podrías abortar)
   const deck = buildDeck();
   const discard: Card[] = [];
 
   // Repartir mano inicial: 3 cartas por jugador
-  const players: PlayerState[] = playerIds.map(pid => ({
-    playerId: pid,
-    hand: deck.splice(0, 3), // 3 cartas, como dice el reglamento
+  const privateStates: PlayerState[] = players.map(player => ({
+    player: player,
+    hand: deck.splice(0, 3), // 3 cartas iniciales
   }));
 
-  const publicPlayers: PublicPlayerInfo[] = players.map(p => ({
-    playerId: p.playerId,
-    handCount: p.hand.length,
-    organs: {}, // por implementar en sprint de mesa
-  }));
+  const publicPlayers: PublicPlayerInfo[] = players.map(pl => {
+    const ps = privateStates.find(p => p.player === pl)!;
+    return {
+      player: pl,
+      handCount: ps.hand.length,
+      board: [], // mesa vacía al inicio
+    };
+  });
 
   const game: GameState = {
     roomId,
     deck,
     discard,
-    players,
+    players: privateStates,
     public: { players: publicPlayers },
     startedAt: new Date().toISOString(),
   };
@@ -97,13 +101,13 @@ export const getPublicState = (roomId: string) => {
     startedAt: g.startedAt,
     discardCount: g.discard.length,
     deckCount: g.deck.length,
-    players: g.public.players,
+    players: g.public.players, // incluye Player, board y handCount
   };
 };
 
 export const getPlayerHand = (roomId: string, playerId: string): Card[] | null => {
   const g = games.get(roomId);
   if (!g) return null;
-  const ps = g.players.find(p => p.playerId === playerId);
+  const ps = g.players.find(p => p.player.id === playerId);
   return ps ? ps.hand : null;
 };
