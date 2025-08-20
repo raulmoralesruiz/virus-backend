@@ -1,4 +1,3 @@
-// backend/src/interfaces/Card.interface.ts
 export enum CardKind {
   Organ = 'organ',
   Virus = 'virus',
@@ -14,9 +13,17 @@ export enum CardColor {
   Multi = 'multi', // Multicolor (afecta a todos)
 }
 
+export enum TreatmentSubtype {
+  Transplant = 'transplant', // Trasplante
+  OrganThief = 'organThief', // Ladrón de Órganos
+  Contagion = 'contagion', // Contagio
+  Gloves = 'gloves', // Guantes de Látex
+  MedicalError = 'medicalError', // Error Médico
+}
+
 export interface Card {
-  id: string; // uuid por carta en el mazo
+  id: string;
   kind: CardKind;
   color: CardColor;
-  // En el futuro: subtype/efecto para tratamientos, etc.
+  subtype?: TreatmentSubtype; // Solo para Treatment
 }

@@ -10,7 +10,7 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
     logger.info(`${ROOM_CONSTANTS.ROOM_NEW} - data player = ${JSON.stringify(player)}`);
 
     // Create a new room
-    const room = createRoom();
+    const room = createRoom(player);
     joinRoom(room.id, player);
 
     socket.join(room.id);

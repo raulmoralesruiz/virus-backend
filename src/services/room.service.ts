@@ -9,10 +9,10 @@ const rooms: Room[] = [];
 export const generateRoomId = () => randomUUID();
 
 export const generateRoomName = (roomId: string) => {
-  return `Sala-${roomId.slice(0, 6)}`;
+  return `${roomId.slice(0, 6)}`;
 };
 
-export const createRoom = () => {
+export const createRoom = (player: Player) => {
   logger.info('room.service - Creating a new room...');
 
   const roomId = generateRoomId();
@@ -21,6 +21,7 @@ export const createRoom = () => {
   const room: Room = {
     id: roomId,
     name: roomName,
+    hostId: player.id,
     players: [],
   };
   logger.info(`room.service - New room created with ID: ${roomId} and Name: ${roomName}`);

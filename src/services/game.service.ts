@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { Card, CardColor, CardKind } from '../interfaces/Card.interface.js';
+import { Card, CardColor, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
 import { GameState, PlayerState, PublicPlayerInfo } from '../interfaces/Game.interface.js';
 import { getRooms } from './room.service.js'; // ya existente en tu backend
 import { logger } from '../utils/logger.js';
@@ -17,40 +17,48 @@ const shuffle = <T>(arr: T[]): T[] => {
   return arr;
 };
 
-// TODO: ajustar composición exacta de Virus! (68 cartas) en sprint siguiente.
-// Por ahora, un mazo mínimo suficiente para repartir (prueba).
+const pushMany = (
+  cards: Card[],
+  kind: CardKind,
+  color: CardColor,
+  count: number,
+  subtype?: TreatmentSubtype
+) => {
+  for (let i = 0; i < count; i++) {
+    cards.push({ id: randomUUID(), kind, color, subtype });
+  }
+};
+
 const buildDeck = (): Card[] => {
   const cards: Card[] = [];
 
-  const pushMany = (kind: CardKind, color: CardColor, count: number) => {
-    for (let i = 0; i < count; i++) {
-      cards.push({ id: randomUUID(), kind, color });
-    }
-  };
-
-  // Órganos (placeholder de cantidades)
-  pushMany(CardKind.Organ, CardColor.Red, 4);
-  pushMany(CardKind.Organ, CardColor.Green, 4);
-  pushMany(CardKind.Organ, CardColor.Blue, 4);
-  pushMany(CardKind.Organ, CardColor.Yellow, 4);
-  pushMany(CardKind.Organ, CardColor.Multi, 1); // multicolor
+  // Órganos
+  pushMany(cards, CardKind.Organ, CardColor.Red, 5);
+  pushMany(cards, CardKind.Organ, CardColor.Green, 5);
+  pushMany(cards, CardKind.Organ, CardColor.Blue, 5);
+  pushMany(cards, CardKind.Organ, CardColor.Yellow, 5);
+  pushMany(cards, CardKind.Organ, CardColor.Multi, 1);
 
   // Virus
-  pushMany(CardKind.Virus, CardColor.Red, 4);
-  pushMany(CardKind.Virus, CardColor.Green, 4);
-  pushMany(CardKind.Virus, CardColor.Blue, 4);
-  pushMany(CardKind.Virus, CardColor.Yellow, 4);
-  pushMany(CardKind.Virus, CardColor.Multi, 1);
+  pushMany(cards, CardKind.Virus, CardColor.Red, 4);
+  pushMany(cards, CardKind.Virus, CardColor.Green, 4);
+  pushMany(cards, CardKind.Virus, CardColor.Blue, 4);
+  pushMany(cards, CardKind.Virus, CardColor.Yellow, 4);
+  pushMany(cards, CardKind.Virus, CardColor.Multi, 1);
 
   // Medicinas
-  pushMany(CardKind.Medicine, CardColor.Red, 4);
-  pushMany(CardKind.Medicine, CardColor.Green, 4);
-  pushMany(CardKind.Medicine, CardColor.Blue, 4);
-  pushMany(CardKind.Medicine, CardColor.Yellow, 4);
-  pushMany(CardKind.Medicine, CardColor.Multi, 1);
+  pushMany(cards, CardKind.Medicine, CardColor.Red, 4);
+  pushMany(cards, CardKind.Medicine, CardColor.Green, 4);
+  pushMany(cards, CardKind.Medicine, CardColor.Blue, 4);
+  pushMany(cards, CardKind.Medicine, CardColor.Yellow, 4);
+  pushMany(cards, CardKind.Medicine, CardColor.Multi, 4);
 
-  // Tratamientos (se añadirán con detalle en sprint siguiente)
-  // p.ej. pushMany(CardKind.Treatment, CardColor.Multi, X);
+  // Tratamientos
+  pushMany(cards, CardKind.Treatment, CardColor.Multi, 2, TreatmentSubtype.Contagion);
+  pushMany(cards, CardKind.Treatment, CardColor.Multi, 3, TreatmentSubtype.OrganThief);
+  pushMany(cards, CardKind.Treatment, CardColor.Multi, 3, TreatmentSubtype.Transplant);
+  pushMany(cards, CardKind.Treatment, CardColor.Multi, 1, TreatmentSubtype.Gloves);
+  pushMany(cards, CardKind.Treatment, CardColor.Multi, 1, TreatmentSubtype.MedicalError);
 
   return shuffle(cards);
 };
