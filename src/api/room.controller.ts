@@ -25,15 +25,15 @@ router.post('/', (req, res) => {
   const player = getPlayerById(playerId);
   if (!player) return res.status(404).json({ error: 'Player not found' });
 
-  const room = createRoom();
-  const joined = joinRoom(room.id, player.id);
-  if (!joined) return res.status(404).json({ error: 'Room creation/join failed' });
+  // const room = createRoom();
+  // const joined = joinRoom(room.id, player.id);
+  // if (!joined) return res.status(404).json({ error: 'Room creation/join failed' });
 
   // Notificar a todos los clientes por WS
-  wsEmitter.emitRoomsList();
-  wsEmitter.emitRoomUpdated(room.id);
+  // wsEmitter.emitRoomsList();
+  // wsEmitter.emitRoomUpdated(room.id);
 
-  return res.json(joined);
+  // return res.json(joined);
 });
 
 // Unirse a sala existente
@@ -45,13 +45,13 @@ router.post('/join/:roomId', (req, res) => {
   const player = getPlayerById(playerId);
   if (!player) return res.status(404).json({ error: 'Player not found' });
 
-  const room = joinRoom(roomId, player.id);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
+  // const room = joinRoom(roomId, player.id);
+  // if (!room) return res.status(404).json({ error: 'Room not found' });
 
-  wsEmitter.emitRoomsList();
-  wsEmitter.emitRoomUpdated(room.id);
+  // wsEmitter.emitRoomsList();
+  // wsEmitter.emitRoomUpdated(room.id);
 
-  return res.json(room);
+  // return res.json(room);
 });
 
 export default router;

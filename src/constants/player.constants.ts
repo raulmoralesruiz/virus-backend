@@ -5,4 +5,7 @@ export const PLAYER_CONSTANTS = {
   PLAYER_GET_BY_ID: 'player:getById',
   PLAYER_FOUND: 'player:found',
   PLAYER_NOT_FOUND: 'player:notFound',
+
+  PLAYER_IDENTIFY: 'player:identify',
+  PLAYER_IDENTIFIED: 'player:identified',
 } as const;

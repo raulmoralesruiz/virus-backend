@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
 import { Room } from '../interfaces/Room.interface.js';
-import { getPlayerById } from './player.service.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
+import { getPlayerById } from './player.service.js';
 
 const rooms: Room[] = [];
 
@@ -36,8 +36,11 @@ export const joinRoom = (roomId: string, player: Player) => {
   const room = rooms.find(r => r.id === roomId);
   if (!room || !player) return null;
 
+  // Usamos siempre la versión "real" del player (con socketId actualizado si existe)
+  const fullPlayer = getPlayerById(player.id) ?? player;
+
   const already = room.players.some(p => p.id === player.id);
-  if (!already) room.players.push(player);
+  if (!already) room.players.push(fullPlayer);
 
   return room;
 };

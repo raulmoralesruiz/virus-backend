@@ -23,3 +23,9 @@ export interface GameState {
   startedAt: string; // ISO string
   // futuro: turno actual, fase, etc.
 }
+
+export interface PlayerHandPayload {
+  roomId: string;
+  playerId: string;
+  hand: Card[];
+}

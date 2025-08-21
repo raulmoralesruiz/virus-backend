@@ -1,10 +1,11 @@
-// backend/src/sockets/game.events.ts
 import { Server, Socket } from 'socket.io';
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
 import { startGame, getPublicState, getPlayerHand } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
 import { wsEmitter } from '../ws/emitter.js';
+import { _playersStore } from '../services/player.service.js';
+import { PlayerHandPayload } from '../interfaces/Game.interface.js';
 
 const registerGameEvents = (io: Server, socket: Socket) => {
   socket.on(GAME_CONSTANTS.GAME_START, ({ roomId }) => {
@@ -13,27 +14,29 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     const room = getRooms().find(r => r.id === roomId);
     if (!room) return;
 
-    // IMPORTANTE: asegúrate de que los sockets de los jugadores estén unidos al roomId
-    // en tus eventos de unión de sala haces: socket.join(roomId)
+    // 🔒 Solo host puede iniciar
+    const requesterId = socket.data?.playerId;
+    if (!requesterId || room.hostId !== requesterId) {
+      logger.warn(`Non-host tried to start game in room ${roomId} (requester=${requesterId})`);
+      return;
+    }
 
     const players = room.players;
-    const game = startGame(roomId, players);
+    startGame(roomId, players);
 
-    // Estado público para todos en la sala
+    // Estado público inicial
     const publicState = getPublicState(roomId);
-    wsEmitter.emitGameState(roomId, publicState);
 
-    // Mano privada a cada jugador (si conoces socketId por jugador, úsalo; de lo contrario, envía al socket iniciador su mano)
-    // Versión mínima: al socket iniciador (deberíamos mejorar con un mapa playerId->socketId)
-    const requesterPlayerId = socket.data?.playerId; // si lo guardaste al crear jugador
-    if (requesterPlayerId) {
-      const hand = getPlayerHand(roomId, requesterPlayerId) || [];
-      socket.emit(GAME_CONSTANTS.GAME_HAND, { roomId, playerId: requesterPlayerId, hand });
-    } else {
-      // fallback: al menos enviamos la mano del primer jugador al solicitante
-      const firstId = players[0].id;
-      const hand = getPlayerHand(roomId, firstId) || [];
-      socket.emit(GAME_CONSTANTS.GAME_HAND, { roomId, playerId: firstId, hand });
+    // notificar a todos los de la sala que la partida empezó
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STARTED, publicState);
+
+    // Mano privada: enviamos a cada jugador por su socketId
+    for (const pl of players) {
+      if (!pl.socketId) continue; // seguridad
+      const hand = getPlayerHand(roomId, pl.id) || [];
+
+      const payload: PlayerHandPayload = { roomId, playerId: pl.id, hand };
+      io.to(pl.socketId).emit(GAME_CONSTANTS.GAME_HAND, payload);
     }
 
     logger.info(`${GAME_CONSTANTS.GAME_STARTED} - roomId=${roomId}`);

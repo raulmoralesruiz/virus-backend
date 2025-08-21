@@ -16,7 +16,7 @@ export default function registerSockets(io: Server) {
     logger.info(`Cliente conectado: ${socket.id}`);
 
     registerRoomEvents(io, socket);
-    // registerPlayerEvents(io, socket);
+    registerPlayerEvents(io, socket);
     registerGameEvents(io, socket);
 
     socket.on('disconnect', () => {

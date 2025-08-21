@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Player } from '../interfaces/Player.interface.js';
 import { logger } from '../utils/logger.js';
+import { getRooms } from './room.service.js';
 
 const players: Player[] = [];
 
@@ -48,6 +49,27 @@ export const removePlayer = (id: string): void => {
   if (index !== -1) {
     players.splice(index, 1);
   }
+};
+
+export const setPlayerSocketId = (playerId: string, socketId: string) => {
+  const p = getPlayerById(playerId);
+  if (p) {
+    p.socketId = socketId;
+
+    // sincronizar en rooms
+    const room = getRooms().find(r => r.players.some(pl => pl.id === playerId));
+    if (room) {
+      const pl = room.players.find(pl => pl.id === playerId);
+      if (pl) pl.socketId = socketId;
+    }
+  }
+
+  return p ?? null;
+};
+
+export const clearPlayerSocketId = (socketId: string) => {
+  const p = players.find(pl => pl.socketId === socketId);
+  if (p) p.socketId = undefined;
 };
 
 // util para tests/manual

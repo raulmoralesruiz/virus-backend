@@ -3,6 +3,7 @@ import { createRoom, getRooms, joinRoom } from '../services/room.service.js';
 import { ROOM_CONSTANTS } from '../constants/room.constants.js';
 import { logger } from '../utils/logger.js';
 import { wsEmitter } from '../ws/emitter.js';
+import { setPlayerSocketId } from '../services/player.service.js';
 
 const registerRoomEvents = (io: Server, socket: Socket) => {
   socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player }) => {
@@ -13,7 +14,10 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
     const room = createRoom(player);
     joinRoom(room.id, player);
 
+    socket.data.playerId = player.id;
+    setPlayerSocketId(player.id, socket.id);
     socket.join(room.id);
+
     wsEmitter.emitRoomsList();
     wsEmitter.emitRoomUpdated(room.id);
   });
@@ -27,18 +31,13 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
       return;
     }
 
-    // Unir al socket a la sala
+    socket.data.playerId = player.id;
+    setPlayerSocketId(player.id, socket.id);
     socket.join(roomId);
 
     // Lista de salas para todos
     wsEmitter.emitRoomsList();
     wsEmitter.emitRoomUpdated(room.id);
-
-    // io.emit(ROOM_CONSTANTS.ROOMS_LIST, getRooms());
-    // socket.emit(ROOM_CONSTANTS.ROOM_JOINED, room);
-
-    // logger.info(`${ROOM_CONSTANTS.ROOM_JOIN} - Player ${player.name} joined room ${roomId}`);
-    // logger.info(`${ROOM_CONSTANTS.ROOM_JOINED} - Room joined successfully: ${roomId}`);
   });
 
   socket.on(ROOM_CONSTANTS.ROOM_GET_ALL, () => {

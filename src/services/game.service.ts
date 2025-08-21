@@ -1,7 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Card, CardColor, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
 import { GameState, PlayerState, PublicPlayerInfo } from '../interfaces/Game.interface.js';
-import { getRooms } from './room.service.js'; // ya existente en tu backend
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
 
@@ -77,14 +76,11 @@ export const startGame = (roomId: string, players: Player[]): GameState => {
     hand: deck.splice(0, 3), // 3 cartas iniciales
   }));
 
-  const publicPlayers: PublicPlayerInfo[] = players.map(pl => {
-    const ps = privateStates.find(p => p.player === pl)!;
-    return {
-      player: pl,
-      handCount: ps.hand.length,
-      board: [], // mesa vacía al inicio
-    };
-  });
+  const publicPlayers: PublicPlayerInfo[] = privateStates.map(ps => ({
+    player: ps.player,
+    handCount: ps.hand.length,
+    board: [], // mesa vacía al inicio
+  }));
 
   const game: GameState = {
     roomId,
