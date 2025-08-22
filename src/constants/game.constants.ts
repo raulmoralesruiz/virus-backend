@@ -5,14 +5,7 @@ export const GAME_CONSTANTS = {
 
   GAME_GET_STATE: 'game:getState', // cliente pide estado público
   GAME_STATE: 'game:state', // envío de estado público (broadcast o unicast)
-} as const;
 
-// export const GAME_CONSTANTS = {
-//   GAME_CREATE: 'game:create',
-//   GAME_STARTED: 'game:started',
-//   GAME_STATE: 'game:state',
-//   GAME_DEAL: 'game:deal',
-//   GAME_DRAW: 'game:draw',
-//   GAME_PLAY_CARD: 'game:playCard',
-//   GAME_END: 'game:end',
-// } as const;
+  GAME_DRAW: 'game:draw', // cliente solicita robar carta
+  GAME_ERROR: 'game:error',
+} as const;

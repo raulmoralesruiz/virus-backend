@@ -1,10 +1,8 @@
 import { Server, Socket } from 'socket.io';
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
-import { startGame, getPublicState, getPlayerHand } from '../services/game.service.js';
+import { startGame, getPublicState, getPlayerHand, drawCard } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
-import { wsEmitter } from '../ws/emitter.js';
-import { _playersStore } from '../services/player.service.js';
 import { PlayerHandPayload } from '../interfaces/Game.interface.js';
 
 const registerGameEvents = (io: Server, socket: Socket) => {
@@ -40,6 +38,51 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     }
 
     logger.info(`${GAME_CONSTANTS.GAME_STARTED} - roomId=${roomId}`);
+  });
+
+  socket.on(GAME_CONSTANTS.GAME_GET_STATE, ({ roomId }) => {
+    const publicState = getPublicState(roomId);
+    socket.emit(GAME_CONSTANTS.GAME_STATE, publicState);
+  });
+
+  // robar carta
+  socket.on(GAME_CONSTANTS.GAME_DRAW, ({ roomId }: { roomId: string }) => {
+    const playerId = socket.data?.playerId as string | undefined;
+    if (!playerId) {
+      logger.warn(`${GAME_CONSTANTS.GAME_ERROR} Jugador no identificado`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'Jugador no identificado' });
+      return;
+    }
+
+    const room = getRooms().find(r => r.id === roomId);
+    if (!room) {
+      logger.warn(`${GAME_CONSTANTS.GAME_ERROR} Sala no existe`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'Sala no existe' });
+      return;
+    }
+
+    const playerInRoom = room.players.some(p => p.id === playerId);
+    if (!playerInRoom) {
+      logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No perteneces a esta sala`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'No perteneces a esta sala' });
+      return;
+    }
+
+    const card = drawCard(roomId, playerId);
+    if (!card) {
+      logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No hay cartas para robar`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'No hay cartas para robar' });
+      return;
+    }
+
+    // mano privada al jugador
+    const hand = getPlayerHand(roomId, playerId) || [];
+    const payload: PlayerHandPayload = { roomId, playerId, hand };
+    socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
+
+    // estado público a toda la sala
+    const state = getPublicState(roomId);
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, state);
   });
 
   socket.on(GAME_CONSTANTS.GAME_GET_STATE, ({ roomId }) => {

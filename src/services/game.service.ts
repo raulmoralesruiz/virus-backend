@@ -1,8 +1,12 @@
-import { randomUUID } from 'crypto';
-import { Card, CardColor, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+import { Card } from '../interfaces/Card.interface.js';
 import { GameState, PlayerState, PublicPlayerInfo } from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
+import {
+  BASE_DECK_CONFIG,
+  DeckEntry,
+  EXPANSION_HALLOWEEN_DECK_CONFIG,
+} from '../config/deck.config.js';
 
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
@@ -16,50 +20,46 @@ const shuffle = <T>(arr: T[]): T[] => {
   return arr;
 };
 
-const pushMany = (
-  cards: Card[],
-  kind: CardKind,
-  color: CardColor,
-  count: number,
-  subtype?: TreatmentSubtype
-) => {
-  for (let i = 0; i < count; i++) {
-    cards.push({ id: randomUUID(), kind, color, subtype });
+// reciclar descarte si no hay cartas en mazo
+const maybeRecycleDiscard = (g: GameState) => {
+  if (g.deck.length === 0 && g.discard.length > 0) {
+    // Mezclamos descarte en el mazo
+    g.deck = shuffle(g.discard);
+    g.discard = [];
   }
 };
 
-const buildDeck = (): Card[] => {
+/**
+ * Genera un mazo a partir de una lista de definiciones de cartas.
+ * IDs deterministas: kind_color_subtype_index
+ */
+const buildDeckFromConfig = (config: DeckEntry[]): Card[] => {
   const cards: Card[] = [];
 
-  // Órganos
-  pushMany(cards, CardKind.Organ, CardColor.Red, 5);
-  pushMany(cards, CardKind.Organ, CardColor.Green, 5);
-  pushMany(cards, CardKind.Organ, CardColor.Blue, 5);
-  pushMany(cards, CardKind.Organ, CardColor.Yellow, 5);
-  pushMany(cards, CardKind.Organ, CardColor.Multi, 1);
+  for (const entry of config) {
+    for (let i = 1; i <= entry.count; i++) {
+      const subtypePart = entry.subtype ? `_${entry.subtype}` : '';
+      const id = `${entry.kind}_${entry.color}${subtypePart}_${i}`;
 
-  // Virus
-  pushMany(cards, CardKind.Virus, CardColor.Red, 4);
-  pushMany(cards, CardKind.Virus, CardColor.Green, 4);
-  pushMany(cards, CardKind.Virus, CardColor.Blue, 4);
-  pushMany(cards, CardKind.Virus, CardColor.Yellow, 4);
-  pushMany(cards, CardKind.Virus, CardColor.Multi, 1);
+      cards.push({
+        id,
+        kind: entry.kind,
+        color: entry.color,
+        subtype: entry.subtype,
+      });
+    }
+  }
 
-  // Medicinas
-  pushMany(cards, CardKind.Medicine, CardColor.Red, 4);
-  pushMany(cards, CardKind.Medicine, CardColor.Green, 4);
-  pushMany(cards, CardKind.Medicine, CardColor.Blue, 4);
-  pushMany(cards, CardKind.Medicine, CardColor.Yellow, 4);
-  pushMany(cards, CardKind.Medicine, CardColor.Multi, 4);
+  return cards;
+};
 
-  // Tratamientos
-  pushMany(cards, CardKind.Treatment, CardColor.Multi, 2, TreatmentSubtype.Contagion);
-  pushMany(cards, CardKind.Treatment, CardColor.Multi, 3, TreatmentSubtype.OrganThief);
-  pushMany(cards, CardKind.Treatment, CardColor.Multi, 3, TreatmentSubtype.Transplant);
-  pushMany(cards, CardKind.Treatment, CardColor.Multi, 1, TreatmentSubtype.Gloves);
-  pushMany(cards, CardKind.Treatment, CardColor.Multi, 1, TreatmentSubtype.MedicalError);
-
-  return shuffle(cards);
+/**
+ * Mazo final = base + expansiones (si se quieren activar).
+ */
+export const buildDeck = (): Card[] => {
+  const base = buildDeckFromConfig(BASE_DECK_CONFIG);
+  const halloween = buildDeckFromConfig(EXPANSION_HALLOWEEN_DECK_CONFIG);
+  return shuffle([...base, ...halloween]);
 };
 
 // Crea/inicia partida en una sala (si no existe)
@@ -114,4 +114,27 @@ export const getPlayerHand = (roomId: string, playerId: string): Card[] | null =
   if (!g) return null;
   const ps = g.players.find(p => p.player.id === playerId);
   return ps ? ps.hand : null;
+};
+
+// robar 1 carta
+export const drawCard = (roomId: string, playerId: string): Card | null => {
+  const g = games.get(roomId);
+  if (!g) return null;
+
+  // intenta reciclar descarte si fuera necesario
+  maybeRecycleDiscard(g);
+
+  if (g.deck.length === 0) return null;
+
+  const ps = g.players.find(p => p.player.id === playerId);
+  if (!ps) return null;
+
+  const card = g.deck.shift()!; // roba 1
+  ps.hand.push(card);
+
+  // actualizar público (handCount del jugador)
+  const pub = g.public.players.find(pp => pp.player.id === playerId);
+  if (pub) pub.handCount = ps.hand.length;
+
+  return card;
 };
