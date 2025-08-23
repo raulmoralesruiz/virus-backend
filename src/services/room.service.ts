@@ -3,6 +3,7 @@ import { Room } from '../interfaces/Room.interface.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
 import { getPlayerById } from './player.service.js';
+import { clearGame } from './game.service.js';
 
 const rooms: Room[] = [];
 
@@ -54,6 +55,14 @@ export const getRooms = () => {
 export const getRoomById = (roomId: string): Room | null => {
   logger.info(`room.service - getRoomById ${roomId}`);
   return rooms.find(r => r.id === roomId) ?? null;
+};
+
+export const removeRoom = (roomId: string) => {
+  const idx = rooms.findIndex(r => r.id === roomId);
+  if (idx !== -1) {
+    rooms.splice(idx, 1);
+    clearGame(roomId); // limpia partida y timer
+  }
 };
 
 // util para tests/manual

@@ -192,3 +192,12 @@ const scheduleTurnTimer = (roomId: string) => {
 
   turnTimers.set(roomId, to);
 };
+
+export const clearGame = (roomId: string) => {
+  const timer = turnTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    turnTimers.delete(roomId);
+  }
+  games.delete(roomId);
+};
