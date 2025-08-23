@@ -7,9 +7,15 @@ import {
   DeckEntry,
   EXPANSION_HALLOWEEN_DECK_CONFIG,
 } from '../config/deck.config.js';
+import { getIO } from '../ws/io.js';
+import { GAME_CONSTANTS } from '../constants/game.constants.js';
 
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
+
+// ⏱️ 60s por turno
+export const TURN_DURATION_MS = 60_000;
+const turnTimers = new Map<string, NodeJS.Timeout>();
 
 // --- Utilidades ---
 const shuffle = <T>(arr: T[]): T[] => {
@@ -82,6 +88,7 @@ export const startGame = (roomId: string, players: Player[]): GameState => {
     board: [], // mesa vacía al inicio
   }));
 
+  const now = Date.now();
   const game: GameState = {
     roomId,
     deck,
@@ -89,9 +96,13 @@ export const startGame = (roomId: string, players: Player[]): GameState => {
     players: privateStates,
     public: { players: publicPlayers },
     startedAt: new Date().toISOString(),
+    turnIndex: 0,
+    turnStartedAt: now,
+    turnDeadlineTs: now + TURN_DURATION_MS,
   };
 
   games.set(roomId, game);
+  scheduleTurnTimer(roomId);
   return game;
 };
 
@@ -106,6 +117,8 @@ export const getPublicState = (roomId: string) => {
     discardCount: g.discard.length,
     deckCount: g.deck.length,
     players: g.public.players, // incluye Player, board y handCount
+    turnIndex: g.turnIndex,
+    turnDeadlineTs: g.turnDeadlineTs,
   };
 };
 
@@ -137,4 +150,54 @@ export const drawCard = (roomId: string, playerId: string): Card | null => {
   if (pub) pub.handCount = ps.hand.length;
 
   return card;
+};
+
+// Validación de turno
+export const isPlayersTurn = (roomId: string, playerId: string): boolean => {
+  const g = games.get(roomId);
+  if (!g) return false;
+  return g.players[g.turnIndex]?.player.id === playerId;
+};
+
+// Avanza turno
+export const endTurn = (roomId: string): GameState | null => {
+  const g = games.get(roomId);
+  if (!g) return null;
+  g.turnIndex = (g.turnIndex + 1) % g.players.length;
+  const now = Date.now();
+  g.turnStartedAt = now;
+  g.turnDeadlineTs = now + TURN_DURATION_MS;
+
+  // reiniciar timer
+  scheduleTurnTimer(roomId);
+  return g;
+};
+
+// --- Timer interno por sala ---
+const scheduleTurnTimer = (roomId: string) => {
+  const old = turnTimers.get(roomId);
+  if (old) clearTimeout(old);
+
+  const g = games.get(roomId);
+  if (!g) return;
+
+  const msLeft = Math.max(0, g.turnDeadlineTs - Date.now());
+  const to = setTimeout(() => {
+    logger.info(`[turn-timer] auto end-turn room=${roomId}`);
+    endTurn(roomId);
+    // broadcast nuevo estado
+    const io = getIO();
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
+  }, msLeft);
+
+  turnTimers.set(roomId, to);
+};
+
+export const clearGame = (roomId: string) => {
+  const timer = turnTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    turnTimers.delete(roomId);
+  }
+  games.delete(roomId);
 };

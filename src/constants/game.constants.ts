@@ -8,4 +8,7 @@ export const GAME_CONSTANTS = {
 
   GAME_DRAW: 'game:draw', // cliente solicita robar carta
   GAME_ERROR: 'game:error',
+
+  GAME_END_TURN: 'game:end-turn', // cliente → server
+  GAME_TURN_STARTED: 'game:turn-started', // (opcional) server → clientes; usamos GAME_STATE igualmente
 } as const;

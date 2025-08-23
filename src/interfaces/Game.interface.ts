@@ -21,7 +21,9 @@ export interface GameState {
     players: PublicPlayerInfo[]; // lo que ven todos
   };
   startedAt: string; // ISO string
-  // futuro: turno actual, fase, etc.
+  turnIndex: number; // índice del jugador activo en `players`
+  turnStartedAt: number; // epoch ms
+  turnDeadlineTs: number; // epoch ms (turnStartedAt + TURN_DURATION_MS)
 }
 
 export interface PlayerHandPayload {

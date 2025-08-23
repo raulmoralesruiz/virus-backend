@@ -1,6 +1,13 @@
 import { Server, Socket } from 'socket.io';
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
-import { startGame, getPublicState, getPlayerHand, drawCard } from '../services/game.service.js';
+import {
+  startGame,
+  getPublicState,
+  getPlayerHand,
+  drawCard,
+  isPlayersTurn,
+  endTurn,
+} from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
 import { PlayerHandPayload } from '../interfaces/Game.interface.js';
@@ -24,7 +31,6 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
     // Estado público inicial
     const publicState = getPublicState(roomId);
-
     // notificar a todos los de la sala que la partida empezó
     io.to(roomId).emit(GAME_CONSTANTS.GAME_STARTED, publicState);
 
@@ -48,30 +54,62 @@ const registerGameEvents = (io: Server, socket: Socket) => {
   // robar carta
   socket.on(GAME_CONSTANTS.GAME_DRAW, ({ roomId }: { roomId: string }) => {
     const playerId = socket.data?.playerId as string | undefined;
+
     if (!playerId) {
       logger.warn(`${GAME_CONSTANTS.GAME_ERROR} Jugador no identificado`);
-      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'Jugador no identificado' });
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, {
+        code: 'PLAYER_NOT_IDENTIFIED',
+        message: 'Jugador no identificado',
+      });
       return;
     }
 
     const room = getRooms().find(r => r.id === roomId);
     if (!room) {
       logger.warn(`${GAME_CONSTANTS.GAME_ERROR} Sala no existe`);
-      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'Sala no existe' });
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, {
+        code: 'ROOM_NOT_FOUND',
+        message: 'Sala no existe',
+      });
       return;
     }
 
     const playerInRoom = room.players.some(p => p.id === playerId);
     if (!playerInRoom) {
       logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No perteneces a esta sala`);
-      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'No perteneces a esta sala' });
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, {
+        code: 'NOT_IN_ROOM',
+        message: 'No perteneces a esta sala',
+      });
+      return;
+    }
+
+    const state = getPublicState(roomId);
+    if (!state) {
+      logger.warn(`${GAME_CONSTANTS.GAME_ERROR} Partida no encontrada`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, {
+        code: 'GAME_NOT_FOUND',
+        message: 'Partida no encontrada',
+      });
+      return;
+    }
+
+    if (!isPlayersTurn(roomId, playerId)) {
+      logger.warn(`[game:draw] Jugador ${playerId} intentó robar fuera de turno`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, {
+        code: 'NOT_YOUR_TURN',
+        message: 'No es tu turno',
+      });
       return;
     }
 
     const card = drawCard(roomId, playerId);
     if (!card) {
       logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No hay cartas para robar`);
-      socket.emit(GAME_CONSTANTS.GAME_ERROR, { message: 'No hay cartas para robar' });
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, {
+        code: 'NO_CARDS_LEFT',
+        message: 'No hay cartas para robar',
+      });
       return;
     }
 
@@ -81,13 +119,30 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
 
     // estado público a toda la sala
-    const state = getPublicState(roomId);
-    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, state);
+    const publicState = getPublicState(roomId);
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, publicState);
   });
 
   socket.on(GAME_CONSTANTS.GAME_GET_STATE, ({ roomId }) => {
     const publicState = getPublicState(roomId);
     socket.emit(GAME_CONSTANTS.GAME_STATE, publicState);
+  });
+
+  // Finalizar turno (solo jugador activo)
+  socket.on(GAME_CONSTANTS.GAME_END_TURN, ({ roomId }) => {
+    const pid = socket.data?.playerId;
+    if (!pid) return;
+
+    if (!isPlayersTurn(roomId, pid)) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, {
+        code: 'NOT_YOUR_TURN',
+        message: 'No es tu turno',
+      });
+      return;
+    }
+
+    endTurn(roomId);
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
   });
 };
 
