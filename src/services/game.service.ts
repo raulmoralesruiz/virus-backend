@@ -1,5 +1,11 @@
-import { Card } from '../interfaces/Card.interface.js';
-import { GameState, PlayerState, PublicPlayerInfo } from '../interfaces/Game.interface.js';
+import { Card, CardColor, CardKind } from '../interfaces/Card.interface.js';
+import {
+  GameState,
+  PlayCardResult,
+  PlayCardTarget,
+  PlayerState,
+  PublicPlayerInfo,
+} from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
 import {
@@ -9,6 +15,7 @@ import {
 } from '../config/deck.config.js';
 import { getIO } from '../ws/io.js';
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
+import { GAME_ERRORS } from '../constants/error.constants.js';
 
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
@@ -201,3 +208,95 @@ export const clearGame = (roomId: string) => {
   }
   games.delete(roomId);
 };
+
+export const playCard = (
+  roomId: string,
+  playerId: string,
+  cardId: string,
+  target?: PlayCardTarget
+): PlayCardResult => {
+  const g = getGame(roomId);
+  if (!g) return { success: false, error: GAME_ERRORS.NO_GAME };
+
+  if (!isPlayersTurn(roomId, playerId)) {
+    return { success: false, error: GAME_ERRORS.NOT_YOUR_TURN };
+  }
+
+  const ps = g.players.find(p => p.player.id === playerId);
+  if (!ps) return { success: false, error: GAME_ERRORS.NO_PLAYER };
+
+  const cardIdx = ps.hand.findIndex(c => c.id === cardId);
+  if (cardIdx === -1) return { success: false, error: GAME_ERRORS.NO_CARD };
+
+  const card = ps.hand[cardIdx];
+
+  switch (card.kind) {
+    case CardKind.Organ:
+      return playOrganCard(g, playerId, cardIdx);
+
+    case CardKind.Virus:
+      return playVirusCard(g, playerId, cardIdx, target);
+
+    default:
+      return { success: false, error: GAME_ERRORS.UNSUPPORTED_CARD };
+  }
+};
+
+// --- Funciones auxiliares ---
+function playOrganCard(g: GameState, playerId: string, cardIdx: number): PlayCardResult {
+  const ps = g.players.find(p => p.player.id === playerId)!;
+  const card = ps.hand[cardIdx];
+
+  const pubSelf = g.public.players.find(pp => pp.player.id === playerId);
+  if (!pubSelf) return { success: false, error: GAME_ERRORS.PUBLIC_MISSING };
+
+  const already = pubSelf.board.some(c => c.kind === CardKind.Organ && c.color === card.color);
+  if (already) return { success: false, error: GAME_ERRORS.DUPLICATE_ORGAN };
+
+  // mover de mano a tablero
+  ps.hand.splice(cardIdx, 1);
+  pubSelf.board.push(card);
+
+  // actualizar handCount público
+  pubSelf.handCount = ps.hand.length;
+
+  return { success: true };
+}
+
+function playVirusCard(
+  g: GameState,
+  playerId: string,
+  cardIdx: number,
+  target?: PlayCardTarget
+): PlayCardResult {
+  const ps = g.players.find(p => p.player.id === playerId)!;
+  const card = ps.hand[cardIdx];
+
+  if (!target?.playerId || !target?.organId) {
+    return { success: false, error: GAME_ERRORS.NO_TARGET };
+  }
+
+  const targetPub = g.public.players.find(pp => pp.player.id === target.playerId);
+  if (!targetPub) return { success: false, error: GAME_ERRORS.INVALID_TARGET };
+
+  const organ = targetPub.board.find(c => c.id === target.organId && c.kind === CardKind.Organ);
+  if (!organ) return { success: false, error: GAME_ERRORS.NO_ORGAN };
+
+  const colorOk =
+    card.color === CardColor.Multi || organ.color === CardColor.Multi || card.color === organ.color;
+  if (!colorOk) return { success: false, error: GAME_ERRORS.COLOR_MISMATCH };
+
+  // destruir órgano
+  targetPub.board = targetPub.board.filter(c => c.id !== organ.id);
+  g.discard.push(organ);
+
+  // virus al descarte
+  ps.hand.splice(cardIdx, 1);
+  g.discard.push(card);
+
+  // actualizar handCount
+  const pubSelf = g.public.players.find(pp => pp.player.id === playerId);
+  if (pubSelf) pubSelf.handCount = ps.hand.length;
+
+  return { success: true };
+}
