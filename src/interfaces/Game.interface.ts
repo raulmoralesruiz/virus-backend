@@ -31,3 +31,17 @@ export interface PlayerHandPayload {
   playerId: string;
   hand: Card[];
 }
+
+export interface PlayCardTarget {
+  playerId: string;
+  organId: string;
+}
+
+export interface PlayCardResultOk {
+  success: true;
+}
+export interface PlayCardResultErr {
+  success: false;
+  error: { code: string; message: string };
+}
+export type PlayCardResult = PlayCardResultOk | PlayCardResultErr;
