@@ -1,6 +1,7 @@
 import { GAME_ERRORS } from '../../constants/error.constants.js';
 import { CardColor, CardKind, Card } from '../../interfaces/Card.interface.js';
 import { PlayCardResult, PlayCardTarget, GameState } from '../../interfaces/Game.interface.js';
+import { playMedicineCard } from './medicine-card.service.js';
 import { playOrganCard } from './organ-card.service.js';
 import { playVirusCard } from './virus-card.service.js';
 
@@ -18,12 +19,17 @@ export const playCardInternal =
 
     const card = ps.hand[cardIdx];
 
-    if (card.kind === CardKind.Organ) {
-      return playOrganCard(g, ps, cardIdx);
-    }
-    if (card.kind === CardKind.Virus) {
-      return playVirusCard(g, ps, cardIdx, target);
-    }
+    switch (card.kind) {
+      case CardKind.Organ:
+        return playOrganCard(g, ps, cardIdx);
 
-    return { success: false, error: GAME_ERRORS.UNSUPPORTED_CARD };
+      case CardKind.Virus:
+        return playVirusCard(g, ps, cardIdx, target);
+
+      case CardKind.Medicine:
+        return playMedicineCard(g, ps, cardIdx, target);
+
+      default:
+        return { success: false, error: GAME_ERRORS.UNSUPPORTED_CARD };
+    }
   };

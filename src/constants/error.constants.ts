@@ -66,7 +66,7 @@ export const GAME_ERRORS = {
   },
   COLOR_MISMATCH: {
     code: 'COLOR_MISMATCH',
-    message: 'El virus no coincide en color con el órgano',
+    message: 'El color de la carta no coincide en color con el órgano',
   },
   UNSUPPORTED_CARD: {
     code: 'UNSUPPORTED_CARD',
@@ -75,5 +75,13 @@ export const GAME_ERRORS = {
   SERVER_ERROR: {
     code: 'SERVER_ERROR',
     message: 'Error interno',
+  },
+  ALREADY_IMMUNE: {
+    code: 'ALREADY_IMMUNE',
+    message: 'El órgano ya está inmune',
+  },
+  IMMUNE_ORGAN: {
+    code: 'IMMUNE_ORGAN',
+    message: 'El órgano es inmune, no se puede infectar',
   },
 } as const;
