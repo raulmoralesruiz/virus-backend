@@ -1,5 +1,6 @@
 import { Card } from '../../interfaces/Card.interface.js';
 import { GameState } from '../../interfaces/Game.interface.js';
+import { logger } from '../../utils/logger.js';
 import { shuffle } from '../deck.service.js';
 
 /**
@@ -28,6 +29,17 @@ export const drawCardInternal =
 
     const ps = g.players.find(p => p.player.id === playerId);
     if (!ps) return null;
+
+    // limitar 3 cartas en mano // TODO! mejorar error
+    const hand = ps.hand;
+    if (hand.length === 3) {
+      logger.warn(`${ps.player.name} no puede robar, ya tiene 3 cartas.`);
+      return null;
+    }
+
+    // if (isImmune(organ)) {
+    //   return { success: false, error: GAME_ERRORS.ALREADY_IMMUNE };
+    // }
 
     const card = g.deck.shift()!;
     ps.hand.push(card);

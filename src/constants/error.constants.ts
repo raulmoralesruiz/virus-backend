@@ -72,6 +72,10 @@ export const GAME_ERRORS = {
     code: 'UNSUPPORTED_CARD',
     message: 'Tipo de carta no soportado aún',
   },
+  UNSUPPORTED_TREATMENT: {
+    code: 'UNSUPPORTED_TREATMENT',
+    message: 'Tipo de tratamiento no soportado aún',
+  },
   SERVER_ERROR: {
     code: 'SERVER_ERROR',
     message: 'Error interno',
