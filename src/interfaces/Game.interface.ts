@@ -37,6 +37,11 @@ export interface PlayCardTarget {
   organId: string;
 }
 
+export interface TransplantTarget {
+  a: PlayCardTarget;
+  b: PlayCardTarget;
+}
+
 export interface PlayCardResultOk {
   success: true;
 }
@@ -46,9 +51,27 @@ export interface PlayCardResultErr {
 }
 export type PlayCardResult = PlayCardResultOk | PlayCardResultErr;
 
+export interface DrawCardResultOk {
+  success: true;
+  card: Card;
+}
+
+export interface DrawCardResultErr {
+  success: false;
+  error: { code: string; message: string };
+}
+
+export type DrawCardResult = DrawCardResultOk | DrawCardResultErr;
+
 export interface OrganOnBoard {
   id: string;
   kind: CardKind.Organ;
   color: CardColor;
   attached: Card[]; // virus o medicinas colocadas encima
+}
+
+export interface ContagionTarget {
+  fromOrganId: string; // órgano infectado propio
+  toPlayerId: string; // jugador destino
+  toOrganId: string; // órgano destino
 }

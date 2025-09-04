@@ -1,12 +1,18 @@
 import { CardColor, CardKind } from '../../interfaces/Card.interface.js';
-import { PlayCardResult, PlayCardTarget, GameState } from '../../interfaces/Game.interface.js';
+import {
+  PlayCardResult,
+  PlayCardTarget,
+  GameState,
+  PlayerState,
+} from '../../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../../constants/error.constants.js';
 import { canReceiveMedicine, isImmune, isInfected } from '../../utils/organ-utils.js';
 import { logger } from '../../utils/logger.js';
 
 export const playMedicineCard = (
   g: GameState,
-  ps: GameState['players'][0],
+  // ps: GameState['players'][0],
+  ps: PlayerState,
   cardIdx: number,
   target?: PlayCardTarget
 ): PlayCardResult => {
@@ -41,6 +47,11 @@ export const playMedicineCard = (
       const virus = organ.attached.splice(virusIdx, 1)[0];
       g.discard.push(virus, card);
       ps.hand.splice(cardIdx, 1);
+
+      // actualizar mano pública
+      const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
+      if (pubSelf) pubSelf.handCount = ps.hand.length;
+
       return { success: true };
     }
   }

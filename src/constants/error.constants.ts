@@ -86,6 +86,14 @@ export const GAME_ERRORS = {
   },
   IMMUNE_ORGAN: {
     code: 'IMMUNE_ORGAN',
-    message: 'El órgano es inmune, no se puede infectar',
+    message: 'El órgano es inmune',
+  },
+  HAND_LIMIT_REACHED: {
+    code: 'HAND_LIMIT_REACHED',
+    message: 'Has alcanzado el límite de cartas en mano',
+  },
+  NO_VIRUS: {
+    code: 'NO_VIRUS',
+    message: 'Virus no encontrado',
   },
 } as const;

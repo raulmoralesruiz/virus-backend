@@ -8,18 +8,23 @@ export const playMedicalError = (
   target: { playerId: string }
 ): PlayCardResult => {
   const card = ps.hand[cardIdx];
+
   if (!target?.playerId) return { success: false, error: GAME_ERRORS.NO_TARGET };
 
-  const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
-  const pubOther = g.public.players.find(pp => pp.player.id === target.playerId);
-  if (!pubSelf || !pubOther) return { success: false, error: GAME_ERRORS.INVALID_TARGET };
+  const targetPub = g.public.players.find(pp => pp.player.id === target.playerId);
+  const myPub = g.public.players.find(pp => pp.player.id === ps.player.id);
+  if (!targetPub || !myPub) return { success: false, error: GAME_ERRORS.INVALID_TARGET };
 
-  const tmp = [...pubSelf.board];
-  pubSelf.board = [...pubOther.board];
-  pubOther.board = tmp;
+  // Swap completo de cuerpo
+  const temp = [...myPub.board];
+  myPub.board = [...targetPub.board];
+  targetPub.board = temp;
 
   ps.hand.splice(cardIdx, 1);
   g.discard.push(card);
+
+  const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
+  if (pubSelf) pubSelf.handCount = ps.hand.length;
 
   return { success: true };
 };
