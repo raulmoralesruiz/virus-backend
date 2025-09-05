@@ -11,7 +11,6 @@ import { logger } from '../../utils/logger.js';
 
 export const playMedicineCard = (
   g: GameState,
-  // ps: GameState['players'][0],
   ps: PlayerState,
   cardIdx: number,
   target?: PlayCardTarget

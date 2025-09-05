@@ -1,10 +1,9 @@
 import { GAME_ERRORS } from '../../../constants/error.constants.js';
-import { CardKind } from '../../../interfaces/Card.interface.js';
+import { CardColor, CardKind } from '../../../interfaces/Card.interface.js';
 import {
   GameState,
   PlayerState,
   PlayCardResult,
-  PlayCardTarget,
   ContagionTarget,
 } from '../../../interfaces/Game.interface.js';
 import { isImmune, isInfected } from '../../../utils/organ-utils.js';
@@ -36,16 +35,26 @@ export const playContagion = (
     );
     if (!organTarget) return { success: false, error: GAME_ERRORS.NO_ORGAN };
 
-    // debe ser órgano libre (ni infectado ni vacunado)
-    if (isInfected(organTarget) || organTarget.attached.some(a => a.kind === CardKind.Medicine)) {
-      return { success: false, error: GAME_ERRORS.INVALID_TARGET };
-    }
+    // debe ser órgano libre (ni inmune, ni infectado, ni vacunado)
     if (isImmune(organTarget)) {
       return { success: false, error: GAME_ERRORS.IMMUNE_ORGAN };
     }
+    if (isInfected(organTarget) || organTarget.attached.some(a => a.kind === CardKind.Medicine)) {
+      return { success: false, error: GAME_ERRORS.INVALID_TARGET };
+    }
+
+    // comprobar color del virus vs órgano destino
+    const virus = pubFrom.attached[virusIdx];
+    if (
+      virus.color !== organTarget.color &&
+      virus.color !== CardColor.Multi &&
+      organTarget.color !== CardColor.Multi
+    ) {
+      return { success: false, error: GAME_ERRORS.COLOR_MISMATCH };
+    }
 
     // mover virus
-    const virus = pubFrom.attached.splice(virusIdx, 1)[0];
+    pubFrom.attached.splice(virusIdx, 1);
     organTarget.attached.push(virus);
   }
 

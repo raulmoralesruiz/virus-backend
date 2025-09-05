@@ -10,7 +10,6 @@ import { canReceiveVirus, isImmune, isInfected } from '../../utils/organ-utils.j
 
 export const playVirusCard = (
   g: GameState,
-  // ps: GameState['players'][0],
   ps: PlayerState,
   cardIdx: number,
   target?: PlayCardTarget
