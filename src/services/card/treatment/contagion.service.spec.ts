@@ -229,4 +229,109 @@ describe('playContagion', () => {
     expect(g.public.players[0].board[0].attached.length).toBe(0);
     expect(g.public.players[0].board[1].attached.length).toBe(0);
   });
+
+  test('ignora un órgano origen que no tiene virus (cubre el continue)', () => {
+    const g = mkGame();
+
+    // P1 con un órgano verde sin virus
+    const fromId = 'org_from_p1';
+    g.public.players[0].board.push({
+      id: fromId,
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [], // sin virus
+    });
+
+    // P2 con órgano verde libre
+    const toId = 'org_to_p2';
+    g.public.players[1].board.push({
+      id: toId,
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [],
+    });
+
+    // Mano: contagio
+    g.players[0].hand.push({
+      id: 'contagion_1',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.Contagion,
+    });
+
+    const targets: ContagionTarget[] = [{ fromOrganId: fromId, toOrganId: toId, toPlayerId: 'p2' }];
+
+    const res = playContagion(g, g.players[0], 0, targets);
+
+    // Éxito aunque no se haya movido nada (cubre el continue)
+    expect(res.success).toBe(true);
+
+    // No se movió ningún virus
+    expect(g.public.players[1].board[0].attached.length).toBe(0);
+  });
+
+  test('falla si el jugador destino no existe (INVALID_TARGET)', () => {
+    const g = mkGame();
+
+    // P1 con órgano infectado
+    const fromId = 'org_from_p1';
+    g.public.players[0].board.push({
+      id: fromId,
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [{ id: 'virus1', kind: CardKind.Virus, color: CardColor.Green }],
+    });
+
+    g.players[0].hand.push({
+      id: 'contagion_invalid_target',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.Contagion,
+    });
+
+    const targets: ContagionTarget[] = [
+      { fromOrganId: fromId, toOrganId: 'fake_organ', toPlayerId: 'no_such_player' },
+    ];
+
+    const res = playContagion(g, g.players[0], 0, targets);
+
+    expect(res).toMatchObject({
+      success: false,
+      error: GAME_ERRORS.INVALID_TARGET,
+    });
+  });
+
+  test('falla si el órgano destino no existe en el jugador válido (NO_ORGAN)', () => {
+    const g = mkGame();
+
+    // P1 con órgano infectado
+    const fromId = 'org_from_p1';
+    g.public.players[0].board.push({
+      id: fromId,
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [{ id: 'virus1', kind: CardKind.Virus, color: CardColor.Green }],
+    });
+
+    // P2 con tablero vacío (no tiene el órgano al que queremos contagiar)
+    g.public.players[1].board = [];
+
+    g.players[0].hand.push({
+      id: 'contagion_no_organ',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.Contagion,
+    });
+
+    const targets: ContagionTarget[] = [
+      { fromOrganId: fromId, toOrganId: 'nonexistent_organ', toPlayerId: 'p2' },
+    ];
+
+    const res = playContagion(g, g.players[0], 0, targets);
+
+    expect(res).toMatchObject({
+      success: false,
+      error: GAME_ERRORS.NO_ORGAN,
+    });
+  });
 });

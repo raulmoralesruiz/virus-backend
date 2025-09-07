@@ -267,4 +267,59 @@ describe('playOrganThief', () => {
     // Órgano sigue en P2
     expect(g.public.players[1].board).toHaveLength(1);
   });
+
+  test('NO_TARGET -> debe fallar si no se pasa target', () => {
+    const g = mkGame();
+    // poner la carta de Ladrón de órganos en la mano del jugador 1
+    g.players[0].hand.push({
+      id: 't_organ_thief',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.OrganThief,
+    });
+
+    // Llamada sin target
+    const res = playOrganThief(g, g.players[0], 0, undefined as any);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_TARGET });
+
+    // también prueba con target sin organId
+    const res2 = playOrganThief(g, g.players[0], 0, {
+      playerId: 'p2',
+      organId: '',
+    } as PlayCardTarget);
+    expect(res2).toMatchObject({ success: false, error: GAME_ERRORS.NO_TARGET });
+  });
+
+  test('INVALID_TARGET -> debe fallar si el player objetivo no existe', () => {
+    const g = mkGame();
+    // carta en mano
+    g.players[0].hand.push({
+      id: 't_organ_thief',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.OrganThief,
+    });
+
+    // target con playerId inexistente
+    const res = playOrganThief(g, g.players[0], 0, {
+      playerId: 'not-a-player',
+      organId: 'whatever',
+    });
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
+
+  test('NO_ORGAN -> debe fallar si el organId no existe en el tablero del objetivo', () => {
+    const g = mkGame();
+    // carta en mano
+    g.players[0].hand.push({
+      id: 't_organ_thief',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.OrganThief,
+    });
+
+    // target válido (p2) pero sin órganos en su board
+    const res = playOrganThief(g, g.players[0], 0, { playerId: 'p2', organId: 'nonexistent' });
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_ORGAN });
+  });
 });

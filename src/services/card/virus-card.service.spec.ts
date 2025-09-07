@@ -29,6 +29,19 @@ const mkGame = (): GameState => {
 };
 
 describe('playVirusCard', () => {
+  test('falla si no hay objetivos', () => {
+    const g = mkGame();
+    g.players[0].hand.push({
+      id: 'med_green_1',
+      kind: CardKind.Medicine,
+      color: CardColor.Green,
+    });
+
+    const res = playVirusCard(g, g.players[0], 0, undefined);
+    expect(res.success).toBe(false);
+    expect(res).toMatchObject({ error: GAME_ERRORS.NO_TARGET });
+  });
+
   test('infecta un órgano libre', () => {
     const g = mkGame();
     const organId = 'organ_green_1';
@@ -231,5 +244,111 @@ describe('playVirusCard', () => {
 
     const organ = g.public.players[1].board.find(o => o.id === organId)!;
     expect(organ.attached.some(a => a.kind === CardKind.Virus)).toBe(true);
+  });
+
+  test('neutraliza si la medicina es Multi y el virus es de un color específico', () => {
+    const g = mkGame();
+    const organId = 'organ_blue_1';
+
+    // Órgano azul con medicina Multi
+    g.public.players[1].board.push({
+      id: organId,
+      kind: CardKind.Organ,
+      color: CardColor.Blue,
+      attached: [{ id: 'med_multi', kind: CardKind.Medicine, color: CardColor.Multi }],
+    });
+
+    // Mano de P1: virus azul
+    g.players[0].hand.push({
+      id: 'virus_blue_1',
+      kind: CardKind.Virus,
+      color: CardColor.Blue,
+    });
+
+    const res = playVirusCard(g, g.players[0], 0, { playerId: 'p2', organId });
+    expect(res.success).toBe(true);
+
+    // Órgano queda sin medicina
+    const organ = g.public.players[1].board.find(o => o.id === organId)!;
+    expect(organ.attached.length).toBe(0);
+
+    // Ambos al descarte
+    expect(g.discard.find(c => c.id === 'med_multi')).toBeTruthy();
+    expect(g.discard.find(c => c.id === 'virus_blue_1')).toBeTruthy();
+  });
+
+  test('neutraliza si el virus es Multi y la medicina es de un color específico', () => {
+    const g = mkGame();
+    const organId = 'organ_green_1';
+
+    // Órgano verde con medicina verde
+    g.public.players[1].board.push({
+      id: organId,
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [{ id: 'med_green_1', kind: CardKind.Medicine, color: CardColor.Green }],
+    });
+
+    // Mano de P1: virus Multi
+    g.players[0].hand.push({
+      id: 'virus_multi_1',
+      kind: CardKind.Virus,
+      color: CardColor.Multi,
+    });
+
+    const res = playVirusCard(g, g.players[0], 0, { playerId: 'p2', organId });
+    expect(res.success).toBe(true);
+
+    const organ = g.public.players[1].board.find(o => o.id === organId)!;
+    expect(organ.attached.length).toBe(0);
+
+    // Ambos al descarte
+    expect(g.discard.find(c => c.id === 'med_green_1')).toBeTruthy();
+    expect(g.discard.find(c => c.id === 'virus_multi_1')).toBeTruthy();
+  });
+
+  test('NO_TARGET -> debe fallar si no se pasa target', () => {
+    const g = mkGame();
+    // poner la carta de virus en la mano del jugador 1
+    g.players[0].hand.push({
+      id: 'med_red_1',
+      kind: CardKind.Medicine,
+      color: CardColor.Red,
+    });
+
+    // Llamada sin target
+    const res = playVirusCard(g, g.players[0], 0, undefined);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_TARGET });
+  });
+
+  test('INVALID_TARGET -> debe fallar si el player objetivo no existe', () => {
+    const g = mkGame();
+    // poner la carta de virus en la mano del jugador 1
+    g.players[0].hand.push({
+      id: 'med_red_1',
+      kind: CardKind.Medicine,
+      color: CardColor.Red,
+    });
+
+    // target con playerId inexistente
+    const res = playVirusCard(g, g.players[0], 0, {
+      playerId: 'not-a-player',
+      organId: 'whatever',
+    });
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
+
+  test('NO_ORGAN -> debe fallar si el organId no existe en el tablero del objetivo', () => {
+    const g = mkGame();
+    // poner la carta de virus en la mano del jugador 1
+    g.players[0].hand.push({
+      id: 'med_red_1',
+      kind: CardKind.Medicine,
+      color: CardColor.Red,
+    });
+
+    // target válido (p2) pero sin órganos en su board
+    const res = playVirusCard(g, g.players[0], 0, { playerId: 'p2', organId: 'nonexistent' });
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_ORGAN });
   });
 });

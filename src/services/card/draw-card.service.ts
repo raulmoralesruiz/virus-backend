@@ -4,8 +4,7 @@ import { DrawCardResult, GameState } from '../../interfaces/Game.interface.js';
 import { logger } from '../../utils/logger.js';
 import { shuffle } from '../deck.service.js';
 
-// const HAND_LIMIT = 3;
-const HAND_LIMIT = 100;
+export const HAND_LIMIT = 3;
 
 /**
  * Si el mazo está vacío pero hay descartes, los recicla.
