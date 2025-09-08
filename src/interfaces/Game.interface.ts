@@ -1,4 +1,4 @@
-import { Card } from './Card.interface.js';
+import { Card, CardColor, CardKind } from './Card.interface.js';
 import { Player } from './Player.interface.js';
 
 export interface PlayerState {
@@ -8,7 +8,7 @@ export interface PlayerState {
 
 export interface PublicPlayerInfo {
   player: Player;
-  board: Card[]; // cartas visibles en mesa
+  board: OrganOnBoard[]; // cartas visibles en mesa
   handCount: number; // solo el número de cartas en mano, no cuáles son
 }
 
@@ -37,6 +37,11 @@ export interface PlayCardTarget {
   organId: string;
 }
 
+export interface TransplantTarget {
+  a: PlayCardTarget;
+  b: PlayCardTarget;
+}
+
 export interface PlayCardResultOk {
   success: true;
 }
@@ -45,3 +50,28 @@ export interface PlayCardResultErr {
   error: { code: string; message: string };
 }
 export type PlayCardResult = PlayCardResultOk | PlayCardResultErr;
+
+export interface DrawCardResultOk {
+  success: true;
+  card: Card;
+}
+
+export interface DrawCardResultErr {
+  success: false;
+  error: { code: string; message: string };
+}
+
+export type DrawCardResult = DrawCardResultOk | DrawCardResultErr;
+
+export interface OrganOnBoard {
+  id: string;
+  kind: CardKind.Organ;
+  color: CardColor;
+  attached: Card[]; // virus o medicinas colocadas encima
+}
+
+export interface ContagionTarget {
+  fromOrganId: string; // órgano infectado propio
+  toPlayerId: string; // jugador destino
+  toOrganId: string; // órgano destino
+}

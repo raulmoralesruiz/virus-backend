@@ -8,11 +8,13 @@ import {
   isPlayersTurn,
   endTurn,
   playCard,
+  getGame,
 } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
 import { PlayCardTarget, PlayerHandPayload } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
+import { CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
 
 const registerGameEvents = (io: Server, socket: Socket) => {
   socket.on(GAME_CONSTANTS.GAME_START, ({ roomId }) => {
@@ -90,10 +92,15 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       return;
     }
 
-    const card = drawCard(roomId, playerId);
-    if (!card) {
-      logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No hay cartas para robar`);
-      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_CARDS_LEFT);
+    // const card = drawCard(roomId, playerId);
+    // if (!card) {
+    //   logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No hay cartas para robar`);
+    //   socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_CARDS_LEFT);
+    //   return;
+    // }
+    const result = drawCard(roomId, playerId);
+    if (!result.success) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, result.error);
       return;
     }
 
@@ -169,10 +176,29 @@ const registerGameEvents = (io: Server, socket: Socket) => {
           return;
         }
 
-        // mano privada al jugador
-        const hand = getPlayerHand(roomId, playerId) || [];
-        const payload: PlayerHandPayload = { roomId, playerId, hand };
-        socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
+        // 👇 detectar si la carta jugada fue GUANTE
+        const g = getGame(roomId);
+        // const g = games.get(roomId);
+        if (g) {
+          const playedCard = g.discard[g.discard.length - 1]; // última carta descartada
+          if (
+            playedCard?.kind === CardKind.Treatment &&
+            playedCard.subtype === TreatmentSubtype.Gloves
+          ) {
+            // enviar manos actualizadas a TODOS
+            for (const pl of g.players) {
+              const hand = getPlayerHand(roomId, pl.player.id) || [];
+              const payload: PlayerHandPayload = { roomId, playerId: pl.player.id, hand };
+              const sock = io.sockets.sockets.get(pl.player.socketId!);
+              if (sock) sock.emit(GAME_CONSTANTS.GAME_HAND, payload);
+            }
+          } else {
+            // caso normal → solo al jugador actual
+            const hand = getPlayerHand(roomId, playerId) || [];
+            const payload: PlayerHandPayload = { roomId, playerId, hand };
+            socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
+          }
+        }
 
         // estado público a todos
         io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));

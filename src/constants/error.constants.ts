@@ -66,14 +66,34 @@ export const GAME_ERRORS = {
   },
   COLOR_MISMATCH: {
     code: 'COLOR_MISMATCH',
-    message: 'El virus no coincide en color con el órgano',
+    message: 'El color de la carta no coincide en color con el órgano',
   },
   UNSUPPORTED_CARD: {
     code: 'UNSUPPORTED_CARD',
     message: 'Tipo de carta no soportado aún',
   },
+  UNSUPPORTED_TREATMENT: {
+    code: 'UNSUPPORTED_TREATMENT',
+    message: 'Tipo de tratamiento no soportado aún',
+  },
   SERVER_ERROR: {
     code: 'SERVER_ERROR',
     message: 'Error interno',
+  },
+  ALREADY_IMMUNE: {
+    code: 'ALREADY_IMMUNE',
+    message: 'El órgano ya está inmune',
+  },
+  IMMUNE_ORGAN: {
+    code: 'IMMUNE_ORGAN',
+    message: 'El órgano es inmune',
+  },
+  HAND_LIMIT_REACHED: {
+    code: 'HAND_LIMIT_REACHED',
+    message: 'Has alcanzado el límite de cartas en mano',
+  },
+  NO_VIRUS: {
+    code: 'NO_VIRUS',
+    message: 'Virus no encontrado',
   },
 } as const;
