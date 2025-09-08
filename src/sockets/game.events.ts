@@ -9,6 +9,7 @@ import {
   endTurn,
   playCard,
   getGame,
+  discardCards,
 } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
@@ -92,12 +93,6 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       return;
     }
 
-    // const card = drawCard(roomId, playerId);
-    // if (!card) {
-    //   logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No hay cartas para robar`);
-    //   socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_CARDS_LEFT);
-    //   return;
-    // }
     const result = drawCard(roomId, playerId);
     if (!result.success) {
       socket.emit(GAME_CONSTANTS.GAME_ERROR, result.error);
@@ -208,6 +203,31 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       }
     }
   );
+
+  socket.on(GAME_CONSTANTS.GAME_DISCARD, ({ roomId, cardIds }) => {
+    const playerId = socket.data?.playerId;
+    // const pid = socket.data?.playerId as string | undefined;;
+    if (!playerId) return;
+
+    if (!isPlayersTurn(roomId, playerId)) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NOT_YOUR_TURN);
+      return;
+    }
+
+    const res = discardCards(roomId, playerId, cardIds);
+    if (!res.success) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, res.error);
+      return;
+    }
+
+    // Estado público actualizado para todos
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
+
+    // Mano privada actualizada SOLO para el jugador
+    const hand = getPlayerHand(roomId, playerId) || [];
+    const payload: PlayerHandPayload = { roomId, playerId, hand };
+    socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
+  });
 };
 
 export default registerGameEvents;

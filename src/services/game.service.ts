@@ -8,6 +8,7 @@ import { buildDeck } from './deck.service.js';
 import { drawCardInternal } from './card/draw-card.service.js';
 import { clearGameInternal, endTurnInternal, isPlayersTurnInternal } from './turn/turn.service.js';
 import { getPlayerHandInternal, getPublicStateInternal } from './query/query.service.js';
+import { discardCardsInternal } from './card/discard-card.service.js';
 
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
@@ -66,3 +67,4 @@ export const isPlayersTurn = isPlayersTurnInternal(games);
 export const endTurn = endTurnInternal(games, turnTimers);
 export const clearGame = clearGameInternal(games, turnTimers);
 export const playCard = playCardInternal(games);
+export const discardCards = discardCardsInternal(games);

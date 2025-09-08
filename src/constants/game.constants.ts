@@ -7,6 +7,7 @@ export const GAME_CONSTANTS = {
   GAME_STATE: 'game:state', // envío de estado público (broadcast o unicast)
 
   GAME_DRAW: 'game:draw', // cliente solicita robar carta
+  GAME_DISCARD: 'game:discard',
   GAME_ERROR: 'game:error',
 
   GAME_END_TURN: 'game:end-turn', // cliente → server
