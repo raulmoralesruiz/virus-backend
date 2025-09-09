@@ -17,6 +17,7 @@ import { playGlove } from './treatment/glove.service.js';
 import { playMedicalError } from './treatment/medical-error.service.js';
 import { endTurn } from '../game.service.js';
 import { drawCardInternal } from './draw-card.service.js';
+import { checkVictory } from '../../utils/victory-utils.js';
 
 export const playCardInternal =
   (games: Map<string, GameState>) =>
@@ -113,8 +114,17 @@ export const playCardInternal =
         break;
     }
 
-    // 3️⃣ Si jugada válida → robar carta y finalizar turno
+    // 3️⃣ Si jugada válida → comprobar victoria, robar y finalizar turno
     if (res.success) {
+      const winner = checkVictory(g);
+      if (winner) {
+        g.winner = winner;
+
+        // no robamos ni avanzamos turno → la partida terminó
+        return res;
+      }
+
+      // si no hay ganador → sigue flujo normal
       const draw = drawCardInternal(games);
       draw(roomId, playerId); // roba automáticamente 1 carta
       endTurn(roomId);

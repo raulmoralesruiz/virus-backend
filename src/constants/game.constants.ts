@@ -13,5 +13,8 @@ export const GAME_CONSTANTS = {
   GAME_END_TURN: 'game:end-turn', // cliente → server
   GAME_TURN_STARTED: 'game:turn-started', // (opcional) server → clientes; usamos GAME_STATE igualmente
 
+  GAME_END: 'game:end',
+  ROOM_RESET: 'room:reset',
+
   GAME_PLAY_CARD: 'game:play-card',
 } as const;

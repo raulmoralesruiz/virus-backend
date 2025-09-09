@@ -10,12 +10,16 @@ import {
   playCard,
   getGame,
   discardCards,
+  clearGame,
 } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
 import { PlayCardTarget, PlayerHandPayload } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
 import { CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 6;
 
 const registerGameEvents = (io: Server, socket: Socket) => {
   socket.on(GAME_CONSTANTS.GAME_START, ({ roomId }) => {
@@ -32,6 +36,12 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     }
 
     const players = room.players;
+    if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
+      logger.error(`${GAME_CONSTANTS.GAME_ERROR} -> ${GAME_ERRORS.NUMBER_PLAYERS.message}`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NUMBER_PLAYERS);
+      return;
+    }
+
     startGame(roomId, players);
 
     // Estado público inicial
@@ -171,9 +181,20 @@ const registerGameEvents = (io: Server, socket: Socket) => {
           return;
         }
 
-        // 👇 detectar si la carta jugada fue GUANTE
         const g = getGame(roomId);
-        // const g = games.get(roomId);
+
+        // 🏆 detectar si hay ganador
+        //todo: modificar/comprobar tras actualizar estado público a todos (ahora no se muestra la última carta jugada)
+        if (g?.winner) {
+          clearGame(roomId);
+
+          io.to(roomId).emit(GAME_CONSTANTS.GAME_END, {
+            roomId,
+            winner: g.winner,
+          });
+          return; // 👈 no seguimos, la partida terminó
+        }
+
         if (g) {
           const playedCard = g.discard[g.discard.length - 1]; // última carta descartada
           if (
@@ -227,6 +248,28 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     const hand = getPlayerHand(roomId, playerId) || [];
     const payload: PlayerHandPayload = { roomId, playerId, hand };
     socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
+  });
+
+  socket.on(GAME_CONSTANTS.ROOM_RESET, ({ roomId }) => {
+    const room = getRooms().find(r => r.id === roomId);
+    if (!room) return;
+
+    // Reiniciar partida
+    startGame(roomId, room.players);
+
+    // Emitir nuevo estado público
+    const publicState = getPublicState(roomId);
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STARTED, publicState);
+
+    // Emitir manos privadas
+    for (const pl of room.players) {
+      const hand = getPlayerHand(roomId, pl.id) || [];
+      const payload: PlayerHandPayload = { roomId, playerId: pl.id, hand };
+      io.to(roomId).emit(GAME_CONSTANTS.GAME_HAND, payload);
+    }
+
+    // 👈 importante: notificar que ya no hay ganador
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
   });
 };
 

@@ -24,6 +24,7 @@ export interface GameState {
   turnIndex: number; // índice del jugador activo en `players`
   turnStartedAt: number; // epoch ms
   turnDeadlineTs: number; // epoch ms (turnStartedAt + TURN_DURATION_MS)
+  winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
 }
 
 export interface PlayerHandPayload {

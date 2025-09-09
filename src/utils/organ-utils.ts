@@ -1,6 +1,10 @@
 import { OrganOnBoard } from '../interfaces/Game.interface.js';
 import { Card, CardKind, CardColor } from '../interfaces/Card.interface.js';
 
+export const isOrgan = (card: any): card is OrganOnBoard => {
+  return card?.kind === CardKind.Organ;
+};
+
 export const isInfected = (organ: OrganOnBoard): boolean =>
   organ.attached.some(c => c.kind === CardKind.Virus);
 
