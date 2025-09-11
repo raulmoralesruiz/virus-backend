@@ -15,6 +15,9 @@ import { playOrganThief } from './treatment/organ-thief.service.js';
 import { playContagion } from './treatment/contagion.service.js';
 import { playGlove } from './treatment/glove.service.js';
 import { playMedicalError } from './treatment/medical-error.service.js';
+import { endTurn } from '../game.service.js';
+import { drawCardInternal } from './draw-card.service.js';
+import { checkVictory } from '../../utils/victory-utils.js';
 
 export const playCardInternal =
   (games: Map<string, GameState>) =>
@@ -30,64 +33,104 @@ export const playCardInternal =
     const ps = g.players.find(p => p.player.id === playerId);
     if (!ps) return { success: false, error: GAME_ERRORS.NO_PLAYER };
 
+    // 1️⃣ Verificar turno
+    if (g.players[g.turnIndex].player.id !== playerId) {
+      return { success: false, error: GAME_ERRORS.NOT_YOUR_TURN };
+    }
+
     const cardIdx = ps.hand.findIndex(c => c.id === cardId);
     if (cardIdx === -1) return { success: false, error: GAME_ERRORS.NO_CARD };
 
     const card = ps.hand[cardIdx];
 
+    // 2️⃣ Resolver jugada con los servicios existentes
+    let res: PlayCardResult = { success: false, error: GAME_ERRORS.UNSUPPORTED_CARD };
+
     switch (card.kind) {
       case CardKind.Organ:
-        return playOrganCard(g, ps, cardIdx);
+        res = playOrganCard(g, ps, cardIdx);
+        break;
 
       case CardKind.Virus: {
         const t = requireSimpleTarget(target);
-        if (!t) return { success: false, error: GAME_ERRORS.NO_TARGET };
-        return playVirusCard(g, ps, cardIdx, t);
+        res = t
+          ? playVirusCard(g, ps, cardIdx, t)
+          : { success: false, error: GAME_ERRORS.NO_TARGET };
+        break;
       }
 
       case CardKind.Medicine: {
         const t = requireSimpleTarget(target);
-        if (!t) return { success: false, error: GAME_ERRORS.NO_TARGET };
-        return playMedicineCard(g, ps, cardIdx, t);
+        res = t
+          ? playMedicineCard(g, ps, cardIdx, t)
+          : { success: false, error: GAME_ERRORS.NO_TARGET };
+        break;
       }
 
       case CardKind.Treatment:
         switch (card.subtype) {
           case TreatmentSubtype.Transplant: {
             const t = requireTransplantTarget(target);
-            if (!t) return { success: false, error: GAME_ERRORS.NO_TARGET };
-            return playTransplant(g, ps, cardIdx, t.a, t.b);
+            res = t
+              ? playTransplant(g, ps, cardIdx, t.a, t.b)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
           }
 
           case TreatmentSubtype.OrganThief: {
             const t = requireSimpleTarget(target);
-            if (!t) return { success: false, error: GAME_ERRORS.NO_TARGET };
-            return playOrganThief(g, ps, cardIdx, t);
+            res = t
+              ? playOrganThief(g, ps, cardIdx, t)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
           }
 
-          case TreatmentSubtype.Contagion: {
-            if (!target || !Array.isArray(target)) {
-              return { success: false, error: GAME_ERRORS.NO_TARGET };
-            }
-            return playContagion(g, ps, cardIdx, target);
-          }
+          case TreatmentSubtype.Contagion:
+            res = Array.isArray(target)
+              ? playContagion(g, ps, cardIdx, target)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
 
           case TreatmentSubtype.Gloves:
-            return playGlove(g, ps, cardIdx);
+            res = playGlove(g, ps, cardIdx);
+            break;
 
           case TreatmentSubtype.MedicalError: {
             const t = requireSimpleTarget(target);
-            if (!t) return { success: false, error: GAME_ERRORS.NO_TARGET };
-            return playMedicalError(g, ps, cardIdx, t);
+            res = t
+              ? playMedicalError(g, ps, cardIdx, t)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
           }
 
           default:
-            return { success: false, error: GAME_ERRORS.UNSUPPORTED_TREATMENT };
+            res = { success: false, error: GAME_ERRORS.UNSUPPORTED_TREATMENT };
+            break;
         }
+        break;
 
       default:
-        return { success: false, error: GAME_ERRORS.UNSUPPORTED_CARD };
+        res = { success: false, error: GAME_ERRORS.UNSUPPORTED_CARD };
+        break;
     }
+
+    // 3️⃣ Si jugada válida → comprobar victoria, robar y finalizar turno
+    if (res.success) {
+      const winner = checkVictory(g);
+      if (winner) {
+        g.winner = winner;
+
+        // no robamos ni avanzamos turno → la partida terminó
+        return res;
+      }
+
+      // si no hay ganador → sigue flujo normal
+      const draw = drawCardInternal(games);
+      draw(roomId, playerId); // roba automáticamente 1 carta
+      endTurn(roomId);
+    }
+
+    return res;
   };
 
 const requireSimpleTarget = (target?: PlayCardTarget | TransplantTarget): PlayCardTarget | null => {

@@ -9,12 +9,17 @@ import {
   endTurn,
   playCard,
   getGame,
+  discardCards,
+  clearGame,
 } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
 import { PlayCardTarget, PlayerHandPayload } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
 import { CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 6;
 
 const registerGameEvents = (io: Server, socket: Socket) => {
   socket.on(GAME_CONSTANTS.GAME_START, ({ roomId }) => {
@@ -31,6 +36,12 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     }
 
     const players = room.players;
+    if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
+      logger.error(`${GAME_CONSTANTS.GAME_ERROR} -> ${GAME_ERRORS.NUMBER_PLAYERS.message}`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NUMBER_PLAYERS);
+      return;
+    }
+
     startGame(roomId, players);
 
     // Estado público inicial
@@ -92,12 +103,6 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       return;
     }
 
-    // const card = drawCard(roomId, playerId);
-    // if (!card) {
-    //   logger.warn(`${GAME_CONSTANTS.GAME_ERROR} No hay cartas para robar`);
-    //   socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_CARDS_LEFT);
-    //   return;
-    // }
     const result = drawCard(roomId, playerId);
     if (!result.success) {
       socket.emit(GAME_CONSTANTS.GAME_ERROR, result.error);
@@ -176,9 +181,8 @@ const registerGameEvents = (io: Server, socket: Socket) => {
           return;
         }
 
-        // 👇 detectar si la carta jugada fue GUANTE
         const g = getGame(roomId);
-        // const g = games.get(roomId);
+
         if (g) {
           const playedCard = g.discard[g.discard.length - 1]; // última carta descartada
           if (
@@ -202,12 +206,70 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
         // estado público a todos
         io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
+
+        // 🏆 detectar si hay ganador
+        if (g?.winner) {
+          clearGame(roomId);
+
+          io.to(roomId).emit(GAME_CONSTANTS.GAME_END, {
+            roomId,
+            winner: g.winner,
+          });
+          return; // 👈 no seguimos, la partida terminó
+        }
       } catch (err: any) {
         logger.error(`[${GAME_CONSTANTS.GAME_PLAY_CARD}] ${err?.message || err}`);
         socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.SERVER_ERROR);
       }
     }
   );
+
+  socket.on(GAME_CONSTANTS.GAME_DISCARD, ({ roomId, cardIds }) => {
+    const playerId = socket.data?.playerId;
+    // const pid = socket.data?.playerId as string | undefined;;
+    if (!playerId) return;
+
+    if (!isPlayersTurn(roomId, playerId)) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NOT_YOUR_TURN);
+      return;
+    }
+
+    const res = discardCards(roomId, playerId, cardIds);
+    if (!res.success) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, res.error);
+      return;
+    }
+
+    // Estado público actualizado para todos
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
+
+    // Mano privada actualizada SOLO para el jugador
+    const hand = getPlayerHand(roomId, playerId) || [];
+    const payload: PlayerHandPayload = { roomId, playerId, hand };
+    socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
+  });
+
+  socket.on(GAME_CONSTANTS.ROOM_RESET, ({ roomId }) => {
+    const room = getRooms().find(r => r.id === roomId);
+    if (!room) return;
+
+    // Reiniciar partida
+    startGame(roomId, room.players);
+
+    // Emitir nuevo estado público
+    const publicState = getPublicState(roomId);
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STARTED, publicState);
+
+    // Emitir manos privadas
+    for (const pl of room.players) {
+      const hand = getPlayerHand(roomId, pl.id) || [];
+      const payload: PlayerHandPayload = { roomId, playerId: pl.id, hand };
+      io.to(roomId).emit(GAME_CONSTANTS.GAME_HAND, payload);
+    }
+
+    // 👈 importante: notificar que ya no hay ganador
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+  });
 };
 
 export default registerGameEvents;

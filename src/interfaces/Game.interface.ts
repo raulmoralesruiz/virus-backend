@@ -24,6 +24,19 @@ export interface GameState {
   turnIndex: number; // índice del jugador activo en `players`
   turnStartedAt: number; // epoch ms
   turnDeadlineTs: number; // epoch ms (turnStartedAt + TURN_DURATION_MS)
+  winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
+}
+
+export interface PublicGameState {
+  roomId: string;
+  startedAt: string;
+  discardCount: number;
+  deckCount: number;
+  players: PublicPlayerInfo[];
+  turnIndex: number;
+  turnDeadlineTs: number;
+  remainingSeconds: number;
+  winner?: PublicPlayerInfo;
 }
 
 export interface PlayerHandPayload {

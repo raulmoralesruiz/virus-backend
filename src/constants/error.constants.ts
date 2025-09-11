@@ -8,6 +8,14 @@ export const GAME_ERRORS = {
     code: 'NO_PLAYER',
     message: 'Jugador no identificado',
   },
+  NOT_HOST: {
+    code: 'NOT_HOST',
+    message: 'Solo el host puede reiniciar la partida',
+  },
+  NUMBER_PLAYERS: {
+    code: 'NUMBER_PLAYERS',
+    message: 'Número de jugadores incorrecto',
+  },
   PLAYER_NOT_IDENTIFIED: {
     code: 'PLAYER_NOT_IDENTIFIED',
     message: 'Jugador no identificado',
