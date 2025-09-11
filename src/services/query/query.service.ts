@@ -1,12 +1,11 @@
 import { Card } from '../../interfaces/Card.interface.js';
-import { GameState } from '../../interfaces/Game.interface.js';
+import { GameState, PublicGameState } from '../../interfaces/Game.interface.js';
 
-/**
- * Devuelve el estado público de la partida (lo que verán todos los jugadores).
- */
-export const getPublicStateInternal = (games: Map<string, GameState>) => (roomId: string) => {
-  const g = games.get(roomId);
-  if (!g) return null;
+// función reutilizable
+export const mapToPublicState = (g: GameState): PublicGameState => {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((g.turnDeadlineTs - now) / 1000));
+
   return {
     roomId: g.roomId,
     startedAt: g.startedAt,
@@ -15,8 +14,21 @@ export const getPublicStateInternal = (games: Map<string, GameState>) => (roomId
     players: g.public.players,
     turnIndex: g.turnIndex,
     turnDeadlineTs: g.turnDeadlineTs,
+    remainingSeconds: remaining,
+    winner: g.winner,
   };
 };
+
+/**
+ * Devuelve el estado público de la partida (lo que verán todos los jugadores).
+ */
+export const getPublicStateInternal =
+  (games: Map<string, GameState>) =>
+  (roomId: string): PublicGameState | null => {
+    const g = games.get(roomId);
+    if (!g) return null;
+    return mapToPublicState(g);
+  };
 
 /**
  * Devuelve la mano privada de un jugador.

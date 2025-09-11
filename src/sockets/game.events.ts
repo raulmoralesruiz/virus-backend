@@ -183,18 +183,6 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
         const g = getGame(roomId);
 
-        // 🏆 detectar si hay ganador
-        //todo: modificar/comprobar tras actualizar estado público a todos (ahora no se muestra la última carta jugada)
-        if (g?.winner) {
-          clearGame(roomId);
-
-          io.to(roomId).emit(GAME_CONSTANTS.GAME_END, {
-            roomId,
-            winner: g.winner,
-          });
-          return; // 👈 no seguimos, la partida terminó
-        }
-
         if (g) {
           const playedCard = g.discard[g.discard.length - 1]; // última carta descartada
           if (
@@ -218,6 +206,17 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
         // estado público a todos
         io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
+
+        // 🏆 detectar si hay ganador
+        if (g?.winner) {
+          clearGame(roomId);
+
+          io.to(roomId).emit(GAME_CONSTANTS.GAME_END, {
+            roomId,
+            winner: g.winner,
+          });
+          return; // 👈 no seguimos, la partida terminó
+        }
       } catch (err: any) {
         logger.error(`[${GAME_CONSTANTS.GAME_PLAY_CARD}] ${err?.message || err}`);
         socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.SERVER_ERROR);

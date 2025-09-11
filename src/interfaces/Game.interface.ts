@@ -27,6 +27,18 @@ export interface GameState {
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
 }
 
+export interface PublicGameState {
+  roomId: string;
+  startedAt: string;
+  discardCount: number;
+  deckCount: number;
+  players: PublicPlayerInfo[];
+  turnIndex: number;
+  turnDeadlineTs: number;
+  remainingSeconds: number;
+  winner?: PublicPlayerInfo;
+}
+
 export interface PlayerHandPayload {
   roomId: string;
   playerId: string;

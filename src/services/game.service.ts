@@ -15,6 +15,7 @@ const games = new Map<string, GameState>();
 const turnTimers = new Map<string, NodeJS.Timeout>();
 
 // ⏱️ 60s por turno
+// export const TURN_DURATION_MS = 5_000;
 export const TURN_DURATION_MS = 60_000;
 
 // --- Gestión de partida ---
