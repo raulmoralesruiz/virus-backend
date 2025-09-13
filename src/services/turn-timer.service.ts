@@ -27,7 +27,7 @@ export const scheduleTurnTimer = (
     const msLeft = Math.max(0, game.turnDeadlineTs - Date.now());
     const remainingSeconds = Math.max(0, Math.ceil(msLeft / 1000));
 
-    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, {
+    io.to(roomId).volatile.emit(GAME_CONSTANTS.GAME_STATE, {
       roomId: game.roomId,
       startedAt: game.startedAt,
       discardCount: game.discard.length,
