@@ -1,6 +1,7 @@
 import { GameState } from '../../interfaces/Game.interface.js';
 import { scheduleTurnTimer } from '../turn-timer.service.js';
 import { TURN_DURATION_MS } from '../game.service.js';
+import { Card } from '../../interfaces/Card.interface.js';
 
 /**
  * Verifica si es el turno de un jugador concreto
@@ -22,7 +23,26 @@ export const endTurnInternal =
     const g = games.get(roomId);
     if (!g) return null;
 
+    // avanzar turno
     g.turnIndex = (g.turnIndex + 1) % g.players.length;
+    let nextPlayer = g.players[g.turnIndex];
+
+    // si el jugador debe saltarse el turno (ej. Guantes de Látex)
+    if (nextPlayer.skipNextTurn) {
+      nextPlayer.skipNextTurn = false;
+
+      // Robar nueva mano (3 cartas, igual que en startGame)
+      const newHand: Card[] = g.deck.splice(0, 3);
+      nextPlayer.hand.push(...newHand);
+
+      // actualizar estado público
+      const pub = g.public.players.find(p => p.player.id === nextPlayer.player.id);
+      if (pub) pub.handCount = nextPlayer.hand.length;
+
+      // pasar turno al siguiente jugador real
+      return endTurnInternal(games, turnTimers)(roomId);
+    }
+
     const now = Date.now();
     g.turnStartedAt = now;
     g.turnDeadlineTs = now + TURN_DURATION_MS;

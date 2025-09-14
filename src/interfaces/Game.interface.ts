@@ -4,6 +4,7 @@ import { Player } from './Player.interface.js';
 export interface PlayerState {
   player: Player;
   hand: Card[];
+  skipNextTurn?: boolean;
 }
 
 export interface PublicPlayerInfo {
