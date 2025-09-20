@@ -3,7 +3,7 @@ import { GameState } from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { getIO } from '../ws/io.js';
 import { discardCardsInternal } from './card/discard-card.service.js';
-import { getPlayerHand, TURN_DURATION_MS } from './game.service.js';
+import { getPlayerHand, TURN_DURATION_MS, getPublicState } from './game.service.js';
 import { getRooms } from './room.service.js';
 
 // --- Timer interno por sala ---
@@ -37,6 +37,7 @@ export const scheduleTurnTimer = (
       turnDeadlineTs: game.turnDeadlineTs,
       remainingSeconds,
       winner: (game as any).winner ?? null,
+      history: game.history,
     });
   };
 

@@ -14,12 +14,203 @@ import {
 } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
 import { getRooms } from '../services/room.service.js';
-import { PlayCardTarget, PlayerHandPayload } from '../interfaces/Game.interface.js';
+import {
+  PlayCardTarget,
+  PlayerHandPayload,
+  TransplantTarget,
+  ContagionTarget,
+  MedicalErrorTarget,
+  GameState,
+  OrganOnBoard,
+} from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
-import { CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+import { Card, CardColor, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
+const HISTORY_LIMIT = 30;
+
+const COLOR_LABELS: Record<CardColor, string> = {
+  [CardColor.Red]: 'Rojo',
+  [CardColor.Green]: 'Verde',
+  [CardColor.Blue]: 'Azul',
+  [CardColor.Yellow]: 'Amarillo',
+  [CardColor.Multi]: 'Multicolor',
+  [CardColor.Halloween]: 'Halloween',
+};
+
+const TREATMENT_LABELS: Partial<Record<TreatmentSubtype, string>> = {
+  [TreatmentSubtype.Transplant]: 'Trasplante',
+  [TreatmentSubtype.OrganThief]: 'Ladrón de Órganos',
+  [TreatmentSubtype.Contagion]: 'Contagio',
+  [TreatmentSubtype.Gloves]: 'Guantes de Látex',
+  [TreatmentSubtype.MedicalError]: 'Error Médico',
+  [TreatmentSubtype.failedExperiment]: 'Experimento Fallido',
+  [TreatmentSubtype.trickOrTreat]: 'Truco o Trato',
+};
+
+const addHistoryEntry = (roomId: string, entry: string | null | undefined) => {
+  if (!entry) return;
+  const game = getGame(roomId);
+  if (!game) return;
+  game.history.unshift(entry);
+  if (game.history.length > HISTORY_LIMIT) {
+    game.history.splice(HISTORY_LIMIT);
+  }
+};
+
+const getPlayerName = (game: GameState | undefined, playerId?: string | null) => {
+  if (!game || !playerId) return 'Jugador';
+  const inPrivate = game.players.find(p => p.player.id === playerId);
+  if (inPrivate) return inPrivate.player.name;
+  const inPublic = game.public.players.find(p => p.player.id === playerId);
+  if (inPublic) return inPublic.player.name;
+  return 'Jugador';
+};
+
+const findOrgan = (
+  game: GameState | undefined,
+  playerId?: string,
+  organId?: string
+): OrganOnBoard | null => {
+  if (!game || !playerId || !organId) return null;
+  const targetPlayer = game.public.players.find(p => p.player.id === playerId);
+  if (!targetPlayer) return null;
+  return targetPlayer.board.find(o => o.id === organId) ?? null;
+};
+
+const describeColor = (color?: CardColor) => {
+  if (!color) return '';
+  return COLOR_LABELS[color] ?? color;
+};
+
+const describeCard = (card?: Card | null) => {
+  if (!card) return 'una carta';
+
+  switch (card.kind) {
+    case CardKind.Organ:
+      return `Órgano ${describeColor(card.color)}`;
+    case CardKind.Virus:
+      return `Virus ${describeColor(card.color)}`;
+    case CardKind.Medicine:
+      return `Medicina ${describeColor(card.color)}`;
+    case CardKind.Treatment: {
+      const label = card.subtype ? TREATMENT_LABELS[card.subtype] : null;
+      return label ?? 'un Tratamiento';
+    }
+    default:
+      return 'una carta';
+  }
+};
+
+const isPlayCardTarget = (value: any): value is PlayCardTarget => {
+  return (
+    value &&
+    typeof value === 'object' &&
+    typeof value.playerId === 'string' &&
+    typeof value.organId === 'string'
+  );
+};
+
+const isTransplantTarget = (value: any): value is TransplantTarget => {
+  return (
+    value && typeof value === 'object' && isPlayCardTarget(value.a) && isPlayCardTarget(value.b)
+  );
+};
+
+const isMedicalErrorTarget = (value: any): value is MedicalErrorTarget => {
+  return (
+    value &&
+    typeof value === 'object' &&
+    typeof value.playerId === 'string' &&
+    !('organId' in value)
+  );
+};
+
+const describeTargetSuffix = (
+  game: GameState | undefined,
+  card: Card | null | undefined,
+  target: any
+) => {
+  if (!target) {
+    if (card?.kind === CardKind.Treatment && card.subtype === TreatmentSubtype.Gloves) {
+      return ' → todos descartan';
+    }
+    return '';
+  }
+
+  if (Array.isArray(target)) {
+    const contagionTargets = target as ContagionTarget[];
+    if (!contagionTargets.length) return ' → contagio';
+    const affectedPlayers = Array.from(
+      new Set(contagionTargets.map(t => getPlayerName(game, t.toPlayerId)).filter(Boolean))
+    );
+    if (affectedPlayers.length) {
+      return ` → contagio a ${affectedPlayers.join(', ')}`;
+    }
+    return ' → contagio';
+  }
+
+  if (isTransplantTarget(target)) {
+    const nameA = getPlayerName(game, target.a.playerId);
+    const nameB = getPlayerName(game, target.b.playerId);
+    return ` entre ${nameA} y ${nameB}`;
+  }
+
+  if (isPlayCardTarget(target)) {
+    const targetPlayer = getPlayerName(game, target.playerId);
+    const organ = findOrgan(game, target.playerId, target.organId);
+    if (organ) {
+      return ` sobre Órgano ${describeColor(organ.color)} de ${targetPlayer}`;
+    }
+    return ` sobre ${targetPlayer}`;
+  }
+
+  if (isMedicalErrorTarget(target)) {
+    const targetPlayer = getPlayerName(game, target.playerId);
+    return ` a ${targetPlayer}`;
+  }
+
+  return '';
+};
+
+const findCardInGame = (game: GameState | undefined, cardId: string | undefined): Card | null => {
+  if (!game || !cardId) return null;
+
+  for (const ps of game.players) {
+    const fromHand = ps.hand.find(c => c.id === cardId);
+    if (fromHand) return fromHand;
+  }
+
+  for (const pub of game.public.players) {
+    for (const organ of pub.board) {
+      if (organ.id === cardId) {
+        return { id: organ.id, kind: CardKind.Organ, color: organ.color };
+      }
+      const attached = organ.attached.find(c => c.id === cardId);
+      if (attached) return attached;
+    }
+  }
+
+  const fromDiscard = game.discard.find(c => c.id === cardId);
+  if (fromDiscard) return fromDiscard;
+
+  return null;
+};
+
+const buildPlayCardHistoryEntry = (
+  game: GameState | undefined,
+  playerId: string,
+  card: Card | null,
+  target: any
+) => {
+  const playerName = getPlayerName(game, playerId);
+  const cardLabel = describeCard(card);
+  const verb = card?.kind === CardKind.Treatment ? 'usó' : 'jugó';
+  const suffix = describeTargetSuffix(game, card, target);
+  const entry = `${playerName} ${verb} ${cardLabel}${suffix}`.trim();
+  return entry;
+};
 
 const registerGameEvents = (io: Server, socket: Socket) => {
   socket.on(GAME_CONSTANTS.GAME_START, ({ roomId }) => {
@@ -43,6 +234,7 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     }
 
     startGame(roomId, players);
+    addHistoryEntry(roomId, 'Comienza la partida');
 
     // Estado público inicial
     const publicState = getPublicState(roomId);
@@ -109,6 +301,10 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       return;
     }
 
+    const gameAfterDraw = getGame(roomId);
+    const drawerName = getPlayerName(gameAfterDraw, playerId);
+    addHistoryEntry(roomId, `${drawerName} robó una carta`);
+
     // mano privada al jugador
     const hand = getPlayerHand(roomId, playerId) || [];
     const payload: PlayerHandPayload = { roomId, playerId, hand };
@@ -174,12 +370,20 @@ const registerGameEvents = (io: Server, socket: Socket) => {
         return;
       }
 
+      const gameBeforePlay = getGame(roomId);
+      const cardInfo = findCardInGame(gameBeforePlay, cardId);
+      const historyEntry = gameBeforePlay
+        ? buildPlayCardHistoryEntry(gameBeforePlay, playerId, cardInfo, target)
+        : null;
+
       try {
         const result = playCard(roomId, playerId, cardId, target);
         if (!result.success) {
           socket.emit(GAME_CONSTANTS.GAME_ERROR, result.error);
           return;
         }
+
+        addHistoryEntry(roomId, historyEntry);
 
         const g = getGame(roomId);
 
@@ -240,6 +444,14 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       return;
     }
 
+    const gameAfterDiscard = getGame(roomId);
+    const quantity = cardIds?.length ?? 0;
+    if (quantity > 0) {
+      const playerName = getPlayerName(gameAfterDiscard, playerId);
+      const suffix = quantity === 1 ? 'carta' : 'cartas';
+      addHistoryEntry(roomId, `${playerName} descartó ${quantity} ${suffix}`);
+    }
+
     // Estado público actualizado para todos
     io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
 
@@ -255,6 +467,7 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
     // Reiniciar partida
     startGame(roomId, room.players);
+    addHistoryEntry(roomId, 'La partida se reinició');
 
     // Emitir nuevo estado público
     const publicState = getPublicState(roomId);

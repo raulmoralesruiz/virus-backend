@@ -1,5 +1,6 @@
 import { Card } from '../../interfaces/Card.interface.js';
 import { GameState, PublicGameState } from '../../interfaces/Game.interface.js';
+import { logger } from '../../utils/logger.js';
 
 // función reutilizable
 export const mapToPublicState = (g: GameState): PublicGameState => {
@@ -16,6 +17,7 @@ export const mapToPublicState = (g: GameState): PublicGameState => {
     turnDeadlineTs: g.turnDeadlineTs,
     remainingSeconds: remaining,
     winner: g.winner,
+    history: g.history,
   };
 };
 

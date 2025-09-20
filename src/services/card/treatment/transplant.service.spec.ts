@@ -22,6 +22,7 @@ const mkGame = (nPlayers = 2): GameState => {
     turnIndex: 0,
     turnStartedAt: Date.now(),
     turnDeadlineTs: Date.now() + 60000,
+    history: [],
   };
 };
 

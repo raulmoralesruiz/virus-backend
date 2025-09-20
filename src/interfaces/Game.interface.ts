@@ -26,6 +26,7 @@ export interface GameState {
   turnStartedAt: number; // epoch ms
   turnDeadlineTs: number; // epoch ms (turnStartedAt + TURN_DURATION_MS)
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
+  history: string[]; // historial textual de acciones
 }
 
 export interface PublicGameState {
@@ -38,6 +39,7 @@ export interface PublicGameState {
   turnDeadlineTs: number;
   remainingSeconds: number;
   winner?: PublicPlayerInfo;
+  history: string[];
 }
 
 export interface PlayerHandPayload {
@@ -88,4 +90,8 @@ export interface ContagionTarget {
   fromOrganId: string; // órgano infectado propio
   toPlayerId: string; // jugador destino
   toOrganId: string; // órgano destino
+}
+
+export interface MedicalErrorTarget {
+  playerId: string;
 }
