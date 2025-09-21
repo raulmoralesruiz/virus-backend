@@ -65,5 +65,37 @@ export const removeRoom = (roomId: string) => {
   }
 };
 
+export const leaveRoom = (
+  roomId: string,
+  playerId: string
+): { room: Room | null; removed: boolean } => {
+  logger.info(`room.service - Player ${playerId} leaving room ${roomId}`);
+
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) {
+    return { room: null, removed: false };
+  }
+
+  const idx = room.players.findIndex(p => p.id === playerId);
+  if (idx === -1) {
+    return { room, removed: false };
+  }
+
+  room.players.splice(idx, 1);
+
+  if (room.hostId === playerId && room.players.length > 0) {
+    room.hostId = room.players[0].id;
+    logger.info(`room.service - Reassigned host to ${room.hostId}`);
+  }
+
+  if (room.players.length === 0) {
+    removeRoom(roomId);
+    return { room: null, removed: true };
+  }
+
+  clearGame(roomId);
+  return { room, removed: false };
+};
+
 // util para tests/manual
 export const _roomsStore = () => rooms;

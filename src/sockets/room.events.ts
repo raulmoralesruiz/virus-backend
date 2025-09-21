@@ -1,9 +1,10 @@
 import { Server, Socket } from 'socket.io';
-import { createRoom, getRooms, joinRoom } from '../services/room.service.js';
+import { createRoom, getRooms, joinRoom, leaveRoom } from '../services/room.service.js';
 import { ROOM_CONSTANTS } from '../constants/room.constants.js';
 import { logger } from '../utils/logger.js';
 import { wsEmitter } from '../ws/emitter.js';
-import { setPlayerSocketId } from '../services/player.service.js';
+import { clearPlayerSocketId, setPlayerSocketId } from '../services/player.service.js';
+import { GAME_CONSTANTS } from '../constants/game.constants.js';
 
 const registerRoomEvents = (io: Server, socket: Socket) => {
   socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player }) => {
@@ -44,6 +45,29 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
     logger.info(`${ROOM_CONSTANTS.ROOM_GET_ALL} - Fetching all rooms...`);
     socket.emit(ROOM_CONSTANTS.ROOMS_LIST, getRooms());
     logger.info(`${ROOM_CONSTANTS.ROOMS_LIST} - Sent list of rooms to client`);
+  });
+
+  socket.on(ROOM_CONSTANTS.ROOM_LEAVE, ({ roomId, playerId }) => {
+    logger.info(`${ROOM_CONSTANTS.ROOM_LEAVE} - Player ${playerId} leaving ${roomId}`);
+
+    if (!roomId || !playerId) {
+      logger.warn(`${ROOM_CONSTANTS.ROOM_LEAVE} - roomId or playerId missing`);
+      return;
+    }
+
+    const result = leaveRoom(roomId, playerId);
+
+    clearPlayerSocketId(socket.id);
+    socket.leave(roomId);
+
+    wsEmitter.emitRoomsList();
+    if (result.room) {
+      wsEmitter.emitRoomUpdated(result.room.id);
+    }
+
+    // notificar a la sala que la partida terminó/ya no está disponible
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, null);
+    io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
   });
 
   // Additional room-related events can be registered here
