@@ -1,6 +1,5 @@
 import express from 'express';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
 import cors from 'cors';
 
 import registerSockets from './sockets/index.js';
@@ -25,7 +24,6 @@ app.get('/health', (_req, res) => {
 
 // Servidor HTTP + WS
 const httpServer = createServer(app);
-// const io = new Server(httpServer, socketConfig);
 const io = initIO(httpServer);
 
 // Registro de eventos WS

@@ -6,20 +6,68 @@ import {
 } from '../services/player.service.js';
 import { logger } from '../utils/logger.js';
 import { PLAYER_CONSTANTS } from '../constants/player.constants.js';
+import { getRooms } from '../services/room.service.js';
+import { wsEmitter } from '../ws/emitter.js';
+import {
+  getGame,
+  getPlayerHand,
+  getPublicState,
+} from '../services/game.service.js';
+import { GAME_CONSTANTS } from '../constants/game.constants.js';
+import { PlayerHandPayload } from '../interfaces/Game.interface.js';
+import { ROOM_CONSTANTS } from '../constants/room.constants.js';
 
 const registerPlayerEvents = (io: Server, socket: Socket) => {
   logger.info(`Registrando eventos de jugador para el socket: ${socket.id}`);
 
-  socket.on(PLAYER_CONSTANTS.PLAYER_IDENTIFY, ({ playerId }) => {
+  const attachSocketToPlayer = (playerId: string, source: string) => {
     const player = getPlayerById(playerId);
     if (!player) {
-      logger.warn(`[player:identify] Player not found: ${playerId}`);
-      return;
+      logger.warn(`[${source}] Player not found: ${playerId}`);
+      return null;
     }
+
     socket.data.playerId = playerId; // 🔗 liga el socket al player
     setPlayerSocketId(playerId, socket.id); // guarda socketId en el jugador
+    logger.info(`[${source}] ${player.name} (${playerId}) -> ${socket.id}`);
+
+    return player;
+  };
+
+  socket.on(PLAYER_CONSTANTS.PLAYER_IDENTIFY, ({ playerId }) => {
+    const player = attachSocketToPlayer(playerId, PLAYER_CONSTANTS.PLAYER_IDENTIFY);
+    if (!player) return;
+
     socket.emit(PLAYER_CONSTANTS.PLAYER_IDENTIFIED, { ok: true });
-    logger.info(`[player:identify] ${player.name} (${playerId}) -> ${socket.id}`);
+  });
+
+  socket.on(PLAYER_CONSTANTS.PLAYER_RECONNECT, ({ playerId }) => {
+    const player = attachSocketToPlayer(playerId, PLAYER_CONSTANTS.PLAYER_RECONNECT);
+    if (!player) return;
+
+    const room = getRooms().find(r => r.players.some(pl => pl.id === playerId));
+    if (room) {
+      socket.join(room.id);
+      wsEmitter.emitRoomUpdated(room.id);
+      socket.emit(ROOM_CONSTANTS.ROOM_JOINED, room);
+
+      const publicState = getPublicState(room.id);
+      if (publicState) socket.emit(GAME_CONSTANTS.GAME_STATE, publicState);
+
+      const hand = getPlayerHand(room.id, playerId) || [];
+      const payload: PlayerHandPayload = { roomId: room.id, playerId, hand };
+      socket.emit(GAME_CONSTANTS.GAME_HAND, payload);
+
+      const game = getGame(room.id);
+      if (game?.winner) {
+        socket.emit(GAME_CONSTANTS.GAME_END, { roomId: room.id, winner: game.winner });
+      }
+    }
+
+    socket.emit(PLAYER_CONSTANTS.PLAYER_IDENTIFIED, {
+      ok: true,
+      reconnected: true,
+    });
   });
 
   socket.on('disconnect', () => {

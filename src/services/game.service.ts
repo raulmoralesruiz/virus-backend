@@ -49,6 +49,7 @@ export const startGame = (roomId: string, players: Player[]): GameState => {
     turnIndex: 0,
     turnStartedAt: now,
     turnDeadlineTs: now + TURN_DURATION_MS,
+    history: [],
   };
 
   games.set(roomId, game);
