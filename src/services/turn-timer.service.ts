@@ -1,16 +1,17 @@
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
+import { TURN_DURATION_MS } from '../constants/turn.constants.js';
 import { GameState } from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { getIO } from '../ws/io.js';
 import { discardCardsInternal } from './card/discard-card.service.js';
-import { getPlayerHand, TURN_DURATION_MS, getPublicState } from './game.service.js';
 import { getRooms } from './room.service.js';
 
 // --- Timer interno por sala ---
 export const scheduleTurnTimer = (
   roomId: string,
   games: Map<string, GameState>,
-  turnTimers: Map<string, NodeJS.Timeout>
+  turnTimers: Map<string, NodeJS.Timeout>,
+  endTurn?: (roomId: string) => void
 ) => {
   const old = turnTimers.get(roomId);
   if (old) {
@@ -67,7 +68,7 @@ export const scheduleTurnTimer = (
         const randomCardId = currentPlayer.hand[randIdx].id;
 
         // 👉 usar servicio centralizado
-        const discard = discardCardsInternal(games);
+        const discard = discardCardsInternal(games, endTurn);
         discard(roomId, currentPlayer.player.id, [randomCardId]);
 
         // 2) Emitir la mano privada actualizada SOLO a ese jugador
@@ -75,7 +76,8 @@ export const scheduleTurnTimer = (
         if (room) {
           const pl = room.players.find(p => p.id === currentPlayer.player.id);
           if (pl?.socketId) {
-            const hand = getPlayerHand(roomId, pl.id) || [];
+            const privateState = game.players.find(p => p.player.id === pl.id);
+            const hand = privateState ? [...privateState.hand] : [];
             const payload = { roomId, playerId: pl.id, hand };
             io.to(pl.socketId).emit(GAME_CONSTANTS.GAME_HAND, payload);
           }

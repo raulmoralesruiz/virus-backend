@@ -2,6 +2,7 @@ import { Card } from '../interfaces/Card.interface.js';
 import { GameState, PlayerState, PublicPlayerInfo } from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
+import { TURN_DURATION_MS } from '../constants/turn.constants.js';
 import { scheduleTurnTimer } from './turn-timer.service.js';
 import { playCardInternal } from './card/card.service.js';
 import { buildDeck } from './deck.service.js';
@@ -13,10 +14,6 @@ import { discardCardsInternal } from './card/discard-card.service.js';
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
 const turnTimers = new Map<string, NodeJS.Timeout>();
-
-// ⏱️ 60s por turno
-// export const TURN_DURATION_MS = 5_000;
-export const TURN_DURATION_MS = 60_000;
 
 // --- Gestión de partida ---
 export const startGame = (roomId: string, players: Player[]): GameState => {
@@ -53,7 +50,7 @@ export const startGame = (roomId: string, players: Player[]): GameState => {
   };
 
   games.set(roomId, game);
-  scheduleTurnTimer(roomId, games, turnTimers);
+  scheduleTurnTimer(roomId, games, turnTimers, endTurn);
   return game;
 };
 
@@ -69,4 +66,4 @@ export const isPlayersTurn = isPlayersTurnInternal(games);
 export const endTurn = endTurnInternal(games, turnTimers);
 export const clearGame = clearGameInternal(games, turnTimers);
 export const playCard = playCardInternal(games);
-export const discardCards = discardCardsInternal(games);
+export const discardCards = discardCardsInternal(games, endTurn);

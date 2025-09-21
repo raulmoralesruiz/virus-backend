@@ -1,13 +1,10 @@
 import { GAME_ERRORS } from '../../constants/error.constants.js';
 import { GameState, PlayCardResult } from '../../interfaces/Game.interface.js';
 import { drawCardInternal, HAND_LIMIT } from './draw-card.service.js';
-import { endTurn } from '../game.service.js';
-import { logger } from '../../utils/logger.js';
 
 export const discardCardsInternal =
-  (games: Map<string, GameState>) =>
+  (games: Map<string, GameState>, onEndTurn?: (roomId: string) => void) =>
   (roomId: string, playerId: string, cardIds: string[]): PlayCardResult => {
-    logger.info(`DSI: entro en discardCardsInternal`);
     const g = games.get(roomId);
     if (!g) return { success: false, error: GAME_ERRORS.NO_GAME };
 
@@ -47,6 +44,6 @@ export const discardCardsInternal =
     }
 
     // finalizar turno
-    endTurn(roomId);
+    onEndTurn?.(roomId);
     return { success: true };
   };
