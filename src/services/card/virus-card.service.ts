@@ -35,7 +35,10 @@ export const playVirusCard = (
   const medIdx = organ.attached.findIndex(
     a =>
       a.kind === CardKind.Medicine &&
-      (a.color === card.color || a.color === CardColor.Multi || card.color === CardColor.Multi)
+      (a.color === card.color ||
+        a.color === CardColor.Multi ||
+        card.color === CardColor.Multi ||
+        organ.color === CardColor.Multi)
   );
 
   if (medIdx >= 0) {
