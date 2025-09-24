@@ -24,6 +24,7 @@ export const createRoom = (player: Player) => {
     name: roomName,
     hostId: player.id,
     players: [],
+    inProgress: false,
   };
   logger.info(`room.service - New room created with ID: ${roomId} and Name: ${roomName}`);
 
@@ -37,12 +38,24 @@ export const joinRoom = (roomId: string, player: Player) => {
   const room = rooms.find(r => r.id === roomId);
   if (!room || !player) return null;
 
+  if (room.inProgress) {
+    logger.info(`room.service - Room ${roomId} is already in progress. Join rejected.`);
+    return null;
+  }
+
   // Usamos siempre la versión "real" del player (con socketId actualizado si existe)
   const fullPlayer = getPlayerById(player.id) ?? player;
 
   const already = room.players.some(p => p.id === player.id);
   if (!already) room.players.push(fullPlayer);
 
+  return room;
+};
+
+export const setRoomInProgress = (roomId: string, inProgress: boolean) => {
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) return null;
+  room.inProgress = inProgress;
   return room;
 };
 
@@ -93,6 +106,7 @@ export const leaveRoom = (
     return { room: null, removed: true };
   }
 
+  setRoomInProgress(roomId, false);
   clearGame(roomId);
   return { room, removed: false };
 };

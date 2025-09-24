@@ -26,9 +26,20 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
   socket.on(ROOM_CONSTANTS.ROOM_JOIN, ({ roomId, player }) => {
     logger.info(`${ROOM_CONSTANTS.ROOM_JOIN} - Player ${player.name} joining ${roomId}`);
 
+    const roomSnapshot = getRooms().find(r => r.id === roomId);
+    if (!roomSnapshot) {
+      socket.emit('error', { message: 'Sala no encontrada' });
+      return;
+    }
+
+    if (roomSnapshot.inProgress) {
+      socket.emit('error', { message: 'La partida ya está en curso' });
+      return;
+    }
+
     const room = joinRoom(roomId, player);
     if (!room) {
-      socket.emit('error', { message: 'Sala no encontrada' });
+      socket.emit('error', { message: 'No fue posible unir a la sala' });
       return;
     }
 

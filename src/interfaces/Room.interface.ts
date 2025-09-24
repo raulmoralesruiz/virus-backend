@@ -5,4 +5,5 @@ export interface Room {
   name: string;
   hostId: string; // id del jugador creador
   players: Player[];
+  inProgress: boolean;
 }

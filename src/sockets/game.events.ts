@@ -13,7 +13,8 @@ import {
   clearGame,
 } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
-import { getRooms } from '../services/room.service.js';
+import { getRooms, setRoomInProgress } from '../services/room.service.js';
+import { wsEmitter } from '../ws/emitter.js';
 import {
   PlayCardTarget,
   PlayerHandPayload,
@@ -234,6 +235,8 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     }
 
     startGame(roomId, players);
+    setRoomInProgress(roomId, true);
+    wsEmitter.emitRoomsList();
     addHistoryEntry(roomId, 'Comienza la partida');
 
     // Estado público inicial
@@ -413,6 +416,8 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
         // 🏆 detectar si hay ganador
         if (g?.winner) {
+          setRoomInProgress(roomId, false);
+          wsEmitter.emitRoomsList();
           clearGame(roomId);
 
           io.to(roomId).emit(GAME_CONSTANTS.GAME_END, {
@@ -467,6 +472,8 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
     // Reiniciar partida
     startGame(roomId, room.players);
+    setRoomInProgress(roomId, true);
+    wsEmitter.emitRoomsList();
     addHistoryEntry(roomId, 'La partida se reinició');
 
     // Emitir nuevo estado público
