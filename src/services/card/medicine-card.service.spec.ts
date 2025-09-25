@@ -175,7 +175,10 @@ describe('playMedicineCard', () => {
     expect(res.success).toBe(false);
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.COLOR_MISMATCH,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: 'La Medicina Estómago no se puede aplicar sobre el Órgano Cerebro.',
+      },
     });
 
     expect(g.players[0].hand.length).toBe(1);
@@ -206,7 +209,10 @@ describe('playMedicineCard', () => {
     expect(res.success).toBe(false);
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.ALREADY_IMMUNE,
+      error: {
+        code: GAME_ERRORS.ALREADY_IMMUNE.code,
+        message: 'El Órgano Estómago ya es inmune; no puedes añadir más medicinas.',
+      },
     });
 
     expect(g.players[0].hand.length).toBe(1);

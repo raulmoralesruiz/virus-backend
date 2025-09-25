@@ -87,7 +87,10 @@ describe('playVirusCard', () => {
     // Comprobar que devuelve el error correcto
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.COLOR_MISMATCH,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: 'El Virus Cerebro no puede infectar el Órgano Estómago.',
+      },
     });
 
     // La carta sigue en mano porque no se jugó
@@ -218,7 +221,10 @@ describe('playVirusCard', () => {
     // Comprobar que devuelve el error correcto
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.IMMUNE_ORGAN,
+      error: {
+        code: GAME_ERRORS.IMMUNE_ORGAN.code,
+        message: 'El Órgano Hueso es inmune; no puedes infectarlo.',
+      },
     });
 
     // La carta sigue en mano porque no se jugó

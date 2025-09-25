@@ -7,7 +7,7 @@ import {
 } from '../../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../../constants/error.constants.js';
 import { canReceiveMedicine, isImmune, isInfected } from '../../utils/organ-utils.js';
-import { logger } from '../../utils/logger.js';
+import { withArticle, withOrganArticle } from '../../utils/card-label.utils.js';
 
 export const playMedicineCard = (
   g: GameState,
@@ -26,11 +26,23 @@ export const playMedicineCard = (
   if (!organ) return { success: false, error: GAME_ERRORS.NO_ORGAN };
 
   if (isImmune(organ)) {
-    return { success: false, error: GAME_ERRORS.ALREADY_IMMUNE };
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.ALREADY_IMMUNE.code,
+        message: `${withOrganArticle(organ)} ya es inmune; no puedes añadir más medicinas.`,
+      },
+    };
   }
 
   if (!canReceiveMedicine(organ, card)) {
-    return { success: false, error: GAME_ERRORS.COLOR_MISMATCH };
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: `${withArticle(card)} no se puede aplicar sobre ${withOrganArticle(organ, { capitalize: false })}.`,
+      },
+    };
   }
 
   // Si hay virus + medicina → neutralizar

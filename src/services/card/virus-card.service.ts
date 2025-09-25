@@ -7,6 +7,7 @@ import {
 } from '../../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../../constants/error.constants.js';
 import { canReceiveVirus, isImmune, isInfected } from '../../utils/organ-utils.js';
+import { withArticle, withOrganArticle } from '../../utils/card-label.utils.js';
 
 export const playVirusCard = (
   g: GameState,
@@ -25,11 +26,23 @@ export const playVirusCard = (
   if (!organ) return { success: false, error: GAME_ERRORS.NO_ORGAN };
 
   if (isImmune(organ)) {
-    return { success: false, error: GAME_ERRORS.IMMUNE_ORGAN };
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.IMMUNE_ORGAN.code,
+        message: `${withOrganArticle(organ)} es inmune; no puedes infectarlo.`,
+      },
+    };
   }
 
   if (!canReceiveVirus(organ, card)) {
-    return { success: false, error: GAME_ERRORS.COLOR_MISMATCH };
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: `${withArticle(card)} no puede infectar ${withOrganArticle(organ, { capitalize: false })}.`,
+      },
+    };
   }
 
   const medIdx = organ.attached.findIndex(

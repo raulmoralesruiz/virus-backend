@@ -10,7 +10,6 @@ export const playGlove = (g: GameState, ps: PlayerState, cardIdx: number): PlayC
   if (!card) {
     return { success: false, error: GAME_ERRORS.NO_CARD };
   }
-  logger.info(`__playGlove__ se está jugando`);
 
   for (const p of g.players) {
     if (p.player.id !== ps.player.id) {

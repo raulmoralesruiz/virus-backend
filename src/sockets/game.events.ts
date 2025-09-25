@@ -25,30 +25,12 @@ import {
   OrganOnBoard,
 } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
-import { Card, CardColor, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+import { Card, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+import { describeCard, describeOrganLabel } from '../utils/card-label.utils.js';
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
 const HISTORY_LIMIT = 30;
-
-const COLOR_LABELS: Record<CardColor, string> = {
-  [CardColor.Red]: 'Rojo',
-  [CardColor.Green]: 'Verde',
-  [CardColor.Blue]: 'Azul',
-  [CardColor.Yellow]: 'Amarillo',
-  [CardColor.Multi]: 'Multicolor',
-  [CardColor.Halloween]: 'Halloween',
-};
-
-const TREATMENT_LABELS: Partial<Record<TreatmentSubtype, string>> = {
-  [TreatmentSubtype.Transplant]: 'Trasplante',
-  [TreatmentSubtype.OrganThief]: 'Ladrón de Órganos',
-  [TreatmentSubtype.Contagion]: 'Contagio',
-  [TreatmentSubtype.Gloves]: 'Guantes de Látex',
-  [TreatmentSubtype.MedicalError]: 'Error Médico',
-  [TreatmentSubtype.failedExperiment]: 'Experimento Fallido',
-  [TreatmentSubtype.trickOrTreat]: 'Truco o Trato',
-};
 
 const addHistoryEntry = (roomId: string, entry: string | null | undefined) => {
   if (!entry) return;
@@ -78,30 +60,6 @@ const findOrgan = (
   const targetPlayer = game.public.players.find(p => p.player.id === playerId);
   if (!targetPlayer) return null;
   return targetPlayer.board.find(o => o.id === organId) ?? null;
-};
-
-const describeColor = (color?: CardColor) => {
-  if (!color) return '';
-  return COLOR_LABELS[color] ?? color;
-};
-
-const describeCard = (card?: Card | null) => {
-  if (!card) return 'una carta';
-
-  switch (card.kind) {
-    case CardKind.Organ:
-      return `Órgano ${describeColor(card.color)}`;
-    case CardKind.Virus:
-      return `Virus ${describeColor(card.color)}`;
-    case CardKind.Medicine:
-      return `Medicina ${describeColor(card.color)}`;
-    case CardKind.Treatment: {
-      const label = card.subtype ? TREATMENT_LABELS[card.subtype] : null;
-      return label ?? 'un Tratamiento';
-    }
-    default:
-      return 'una carta';
-  }
 };
 
 const isPlayCardTarget = (value: any): value is PlayCardTarget => {
@@ -155,14 +113,19 @@ const describeTargetSuffix = (
   if (isTransplantTarget(target)) {
     const nameA = getPlayerName(game, target.a.playerId);
     const nameB = getPlayerName(game, target.b.playerId);
-    return ` entre ${nameA} y ${nameB}`;
+    const organA = describeOrganLabel(findOrgan(game, target.a.playerId, target.a.organId));
+    const organB = describeOrganLabel(findOrgan(game, target.b.playerId, target.b.organId));
+    const detailA = organA ? ` (${organA})` : '';
+    const detailB = organB ? ` (${organB})` : '';
+    return ` entre ${nameA}${detailA} y ${nameB}${detailB}`;
   }
 
   if (isPlayCardTarget(target)) {
     const targetPlayer = getPlayerName(game, target.playerId);
     const organ = findOrgan(game, target.playerId, target.organId);
-    if (organ) {
-      return ` sobre Órgano ${describeColor(organ.color)} de ${targetPlayer}`;
+    const organLabel = describeOrganLabel(organ);
+    if (organLabel) {
+      return ` sobre ${organLabel} de ${targetPlayer}`;
     }
     return ` sobre ${targetPlayer}`;
   }
