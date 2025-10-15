@@ -30,7 +30,7 @@ import { describeCard, describeOrganLabel } from '../utils/card-label.utils.js';
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
-const HISTORY_LIMIT = 30;
+const HISTORY_LIMIT = 999;
 
 const addHistoryEntry = (roomId: string, entry: string | null | undefined) => {
   if (!entry) return;
