@@ -1,5 +1,12 @@
 import { Server, Socket } from 'socket.io';
-import { createRoom, getRooms, joinRoom, leaveRoom } from '../services/room.service.js';
+import {
+  createRoom,
+  getPublicRooms,
+  getRoomByKey,
+  getRooms,
+  joinRoom,
+  leaveRoom,
+} from '../services/room.service.js';
 import { ROOM_CONSTANTS } from '../constants/room.constants.js';
 import { logger } from '../utils/logger.js';
 import { wsEmitter } from '../ws/emitter.js';
@@ -7,12 +14,14 @@ import { clearPlayerSocketId, setPlayerSocketId } from '../services/player.servi
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
 
 const registerRoomEvents = (io: Server, socket: Socket) => {
-  socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player }) => {
+  socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player, visibility }) => {
     logger.info(`${ROOM_CONSTANTS.ROOM_NEW} - Creating a new room...`);
     logger.info(`${ROOM_CONSTANTS.ROOM_NEW} - data player = ${JSON.stringify(player)}`);
+    logger.info(`${ROOM_CONSTANTS.ROOM_NEW} - visibility = ${visibility}`);
 
     // Create a new room
-    const room = createRoom(player);
+    const sanitizedVisibility = visibility === 'private' ? 'private' : 'public';
+    const room = createRoom(player, sanitizedVisibility);
     joinRoom(room.id, player);
 
     socket.data.playerId = player.id;
@@ -26,7 +35,7 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
   socket.on(ROOM_CONSTANTS.ROOM_JOIN, ({ roomId, player }) => {
     logger.info(`${ROOM_CONSTANTS.ROOM_JOIN} - Player ${player.name} joining ${roomId}`);
 
-    const roomSnapshot = getRooms().find(r => r.id === roomId);
+    const roomSnapshot = getRoomByKey(roomId);
     if (!roomSnapshot) {
       socket.emit('error', { message: 'Sala no encontrada' });
       return;
@@ -45,7 +54,7 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
 
     socket.data.playerId = player.id;
     setPlayerSocketId(player.id, socket.id);
-    socket.join(roomId);
+    socket.join(room.id);
 
     // Lista de salas para todos
     wsEmitter.emitRoomsList();
@@ -54,7 +63,7 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
 
   socket.on(ROOM_CONSTANTS.ROOM_GET_ALL, () => {
     logger.info(`${ROOM_CONSTANTS.ROOM_GET_ALL} - Fetching all rooms...`);
-    socket.emit(ROOM_CONSTANTS.ROOMS_LIST, getRooms());
+    socket.emit(ROOM_CONSTANTS.ROOMS_LIST, getPublicRooms());
     logger.info(`${ROOM_CONSTANTS.ROOMS_LIST} - Sent list of rooms to client`);
   });
 

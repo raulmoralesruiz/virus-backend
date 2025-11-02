@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { getRooms, createRoom, joinRoom, getRoomById } from '../services/room.service.js';
+import {
+  getRooms,
+  createRoom,
+  joinRoom,
+  getRoomById,
+  getPublicRooms,
+} from '../services/room.service.js';
 import { getPlayerById } from '../services/player.service.js';
 import { wsEmitter } from '../ws/emitter.js';
 
@@ -7,7 +13,7 @@ const router = Router();
 
 // Lista inicial de salas
 router.get('/', (_req, res) => {
-  return res.json(getRooms());
+  return res.json(getPublicRooms());
 });
 
 // Obtener sala por id

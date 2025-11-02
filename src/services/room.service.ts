@@ -13,7 +13,9 @@ export const generateRoomName = (roomId: string) => {
   return `${roomId.slice(0, 6)}`;
 };
 
-export const createRoom = (player: Player) => {
+type RoomVisibility = Room['visibility'];
+
+export const createRoom = (player: Player, visibility: RoomVisibility = 'public') => {
   logger.info('room.service - Creating a new room...');
 
   const roomId = generateRoomId();
@@ -25,21 +27,29 @@ export const createRoom = (player: Player) => {
     hostId: player.id,
     players: [],
     inProgress: false,
+    visibility,
   };
-  logger.info(`room.service - New room created with ID: ${roomId} and Name: ${roomName}`);
+  logger.info(
+    `room.service - New room created with ID: ${roomId}, Name: ${roomName} and visibility: ${visibility}`
+  );
 
   rooms.push(room);
   return room;
 };
 
-export const joinRoom = (roomId: string, player: Player) => {
-  logger.info(`room.service - Player ${player.name} is joining room ${roomId}`);
+const findRoomByKey = (roomKey: string): Room | null => {
+  if (!roomKey) return null;
+  return rooms.find(r => r.id === roomKey || r.name === roomKey) ?? null;
+};
 
-  const room = rooms.find(r => r.id === roomId);
+export const joinRoom = (roomKey: string, player: Player) => {
+  logger.info(`room.service - Player ${player.name} is joining room ${roomKey}`);
+
+  const room = findRoomByKey(roomKey);
   if (!room || !player) return null;
 
   if (room.inProgress) {
-    logger.info(`room.service - Room ${roomId} is already in progress. Join rejected.`);
+    logger.info(`room.service - Room ${room.id} is already in progress. Join rejected.`);
     return null;
   }
 
@@ -65,9 +75,19 @@ export const getRooms = () => {
   return rooms;
 };
 
+export const getPublicRooms = () => {
+  logger.info('room.service - Fetching all PUBLIC rooms...');
+  return rooms.filter(r => r.visibility === 'public');
+};
+
 export const getRoomById = (roomId: string): Room | null => {
   logger.info(`room.service - getRoomById ${roomId}`);
   return rooms.find(r => r.id === roomId) ?? null;
+};
+
+export const getRoomByKey = (roomKey: string): Room | null => {
+  logger.info(`room.service - getRoomByKey ${roomKey}`);
+  return findRoomByKey(roomKey);
 };
 
 export const removeRoom = (roomId: string) => {

@@ -6,4 +6,5 @@ export interface Room {
   hostId: string; // id del jugador creador
   players: Player[];
   inProgress: boolean;
+  visibility: 'public' | 'private';
 }
