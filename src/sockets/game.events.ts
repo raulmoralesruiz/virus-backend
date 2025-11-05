@@ -209,7 +209,10 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
     // Mano privada: enviamos a cada jugador por su socketId
     for (const pl of players) {
-      if (!pl.socketId) continue; // seguridad
+      if (!pl.socketId) {
+        logger.warn(`[game:start] Player ${pl.id} missing socketId when sending hand`);
+        continue; // seguridad
+      }
       const hand = getPlayerHand(roomId, pl.id) || [];
 
       const payload: PlayerHandPayload = { roomId, playerId: pl.id, hand };

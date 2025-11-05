@@ -71,7 +71,15 @@ export const discardCards = discardCardsInternal(games, endTurn);
 export const removePlayerFromGame = (
   roomId: string,
   playerId: string
-): { game: GameState | null; removed: boolean } => {
+): {
+  game: GameState | null;
+  removed: boolean;
+  forcedEnd?: {
+    lastPlayerId: string;
+    lastPlayerName: string;
+    lastPlayerSocketId?: string;
+  };
+} => {
   const game = games.get(roomId);
   if (!game) {
     return { game: null, removed: false };
@@ -127,6 +135,17 @@ export const removePlayerFromGame = (
   if (game.players.length === 0) {
     clearGame(roomId);
     return { game: null, removed: true };
+  }
+
+  if (game.players.length === 1) {
+    const survivor = game.players[0];
+    const forcedEndInfo = {
+      lastPlayerId: survivor.player.id,
+      lastPlayerName: survivor.player.name,
+      lastPlayerSocketId: survivor.player.socketId,
+    };
+    clearGame(roomId);
+    return { game: null, removed: true, forcedEnd: forcedEndInfo };
   }
 
   if (privateIdx !== -1 && privateIdx < originalTurnIndex) {

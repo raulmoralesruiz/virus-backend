@@ -82,6 +82,25 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
     socket.leave(roomId);
 
     wsEmitter.emitRoomsList();
+
+    if (result.forcedEnd) {
+      const { room: forcedRoom, lastPlayerSocketId } = result.forcedEnd;
+
+      if (lastPlayerSocketId) {
+        io.to(lastPlayerSocketId).emit(ROOM_CONSTANTS.ROOM_JOINED, forcedRoom);
+        io.to(lastPlayerSocketId).emit(GAME_CONSTANTS.GAME_STATE, null);
+        io.to(lastPlayerSocketId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+
+        const survivorSocket = io.sockets.sockets.get(lastPlayerSocketId);
+        survivorSocket?.leave(roomId);
+      } else {
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, null);
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+      }
+
+      return;
+    }
+
     if (result.room) {
       wsEmitter.emitRoomUpdated(result.room.id);
     }

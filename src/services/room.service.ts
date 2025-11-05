@@ -102,7 +102,18 @@ export const removeRoom = (roomId: string) => {
 export const leaveRoom = (
   roomId: string,
   playerId: string
-): { room: Room | null; removed: boolean; game: GameState | null; gamePlayerRemoved: boolean } => {
+): {
+  room: Room | null;
+  removed: boolean;
+  game: GameState | null;
+  gamePlayerRemoved: boolean;
+  forcedEnd?: {
+    lastPlayerId: string;
+    lastPlayerName: string;
+    lastPlayerSocketId?: string;
+    room: Room;
+  };
+} => {
   logger.info(`room.service - Player ${playerId} leaving room ${roomId}`);
 
   const room = rooms.find(r => r.id === roomId);
@@ -110,23 +121,45 @@ export const leaveRoom = (
     return { room: null, removed: false, game: null, gamePlayerRemoved: false };
   }
 
-  const idx = room.players.findIndex(p => p.id === playerId);
-  if (idx === -1) {
-    const gameInfo = removePlayerFromGame(roomId, playerId);
-    if (!gameInfo.game) {
-      setRoomInProgress(roomId, false);
-    }
-    return { room, removed: false, game: gameInfo.game, gamePlayerRemoved: gameInfo.removed };
-  }
+  const gameInfo = removePlayerFromGame(roomId, playerId);
 
-  room.players.splice(idx, 1);
+  const idx = room.players.findIndex(p => p.id === playerId);
+  if (idx !== -1) {
+    room.players.splice(idx, 1);
+  }
 
   if (room.hostId === playerId && room.players.length > 0) {
     room.hostId = room.players[0].id;
     logger.info(`room.service - Reassigned host to ${room.hostId}`);
   }
 
-  const gameInfo = removePlayerFromGame(roomId, playerId);
+  if (gameInfo.forcedEnd) {
+    const remainingIdx = room.players.findIndex(p => p.id === gameInfo.forcedEnd!.lastPlayerId);
+    if (remainingIdx !== -1) {
+      room.players.splice(remainingIdx, 1);
+    }
+
+    const snapshot: Room = {
+      ...room,
+      players: [],
+      inProgress: false,
+    };
+
+    setRoomInProgress(roomId, false);
+    removeRoom(roomId);
+
+    return {
+      room: null,
+      removed: true,
+      game: null,
+      gamePlayerRemoved: gameInfo.removed,
+      forcedEnd: {
+        ...gameInfo.forcedEnd,
+        room: snapshot,
+      },
+    };
+  }
+
   if (!gameInfo.game) {
     setRoomInProgress(roomId, false);
   }
