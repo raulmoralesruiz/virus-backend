@@ -12,6 +12,7 @@ import { logger } from '../utils/logger.js';
 import { wsEmitter } from '../ws/emitter.js';
 import { clearPlayerSocketId, setPlayerSocketId } from '../services/player.service.js';
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
+import { getPublicState } from '../services/game.service.js';
 
 const registerRoomEvents = (io: Server, socket: Socket) => {
   socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player, visibility }) => {
@@ -85,9 +86,15 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
       wsEmitter.emitRoomUpdated(result.room.id);
     }
 
-    // notificar a la sala que la partida terminó/ya no está disponible
-    io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, null);
-    io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+    if (result.gamePlayerRemoved) {
+      const publicState = getPublicState(roomId);
+      if (publicState) {
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, publicState);
+      } else {
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, null);
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+      }
+    }
   });
 
   // Additional room-related events can be registered here

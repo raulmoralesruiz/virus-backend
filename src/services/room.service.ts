@@ -2,8 +2,9 @@ import { randomUUID } from 'crypto';
 import { Room } from '../interfaces/Room.interface.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
+import { GameState } from '../interfaces/Game.interface.js';
 import { getPlayerById } from './player.service.js';
-import { clearGame } from './game.service.js';
+import { clearGame, removePlayerFromGame } from './game.service.js';
 
 const rooms: Room[] = [];
 
@@ -101,17 +102,21 @@ export const removeRoom = (roomId: string) => {
 export const leaveRoom = (
   roomId: string,
   playerId: string
-): { room: Room | null; removed: boolean } => {
+): { room: Room | null; removed: boolean; game: GameState | null; gamePlayerRemoved: boolean } => {
   logger.info(`room.service - Player ${playerId} leaving room ${roomId}`);
 
   const room = rooms.find(r => r.id === roomId);
   if (!room) {
-    return { room: null, removed: false };
+    return { room: null, removed: false, game: null, gamePlayerRemoved: false };
   }
 
   const idx = room.players.findIndex(p => p.id === playerId);
   if (idx === -1) {
-    return { room, removed: false };
+    const gameInfo = removePlayerFromGame(roomId, playerId);
+    if (!gameInfo.game) {
+      setRoomInProgress(roomId, false);
+    }
+    return { room, removed: false, game: gameInfo.game, gamePlayerRemoved: gameInfo.removed };
   }
 
   room.players.splice(idx, 1);
@@ -121,14 +126,17 @@ export const leaveRoom = (
     logger.info(`room.service - Reassigned host to ${room.hostId}`);
   }
 
-  if (room.players.length === 0) {
-    removeRoom(roomId);
-    return { room: null, removed: true };
+  const gameInfo = removePlayerFromGame(roomId, playerId);
+  if (!gameInfo.game) {
+    setRoomInProgress(roomId, false);
   }
 
-  setRoomInProgress(roomId, false);
-  clearGame(roomId);
-  return { room, removed: false };
+  if (room.players.length === 0) {
+    removeRoom(roomId);
+    return { room: null, removed: true, game: null, gamePlayerRemoved: gameInfo.removed };
+  }
+
+  return { room, removed: false, game: gameInfo.game, gamePlayerRemoved: gameInfo.removed };
 };
 
 // util para tests/manual

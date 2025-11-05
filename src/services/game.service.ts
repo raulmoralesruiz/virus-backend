@@ -1,4 +1,4 @@
-import { Card } from '../interfaces/Card.interface.js';
+import { Card, CardKind } from '../interfaces/Card.interface.js';
 import { GameState, PlayerState, PublicPlayerInfo } from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
@@ -67,3 +67,80 @@ export const endTurn = endTurnInternal(games, turnTimers);
 export const clearGame = clearGameInternal(games, turnTimers);
 export const playCard = playCardInternal(games);
 export const discardCards = discardCardsInternal(games, endTurn);
+
+export const removePlayerFromGame = (
+  roomId: string,
+  playerId: string
+): { game: GameState | null; removed: boolean } => {
+  const game = games.get(roomId);
+  if (!game) {
+    return { game: null, removed: false };
+  }
+
+  const originalTurnIndex = game.turnIndex;
+  const privateIdx = game.players.findIndex(p => p.player.id === playerId);
+  const publicIdx = game.public.players.findIndex(p => p.player.id === playerId);
+
+  if (privateIdx === -1 && publicIdx === -1) {
+    return { game, removed: false };
+  }
+
+  const removedCards: Card[] = [];
+  let removedPlayerName: string | undefined;
+  const wasCurrentPlayer = privateIdx === originalTurnIndex;
+
+  if (privateIdx !== -1) {
+    const [removedPrivate] = game.players.splice(privateIdx, 1);
+    if (removedPrivate) {
+      removedCards.push(...removedPrivate.hand);
+      removedPlayerName = removedPrivate.player.name;
+    }
+  }
+
+  if (publicIdx !== -1) {
+    const [removedPublic] = game.public.players.splice(publicIdx, 1);
+    if (removedPublic) {
+      removedPlayerName = removedPlayerName ?? removedPublic.player.name;
+      for (const organ of removedPublic.board) {
+        removedCards.push({
+          id: organ.id,
+          kind: CardKind.Organ,
+          color: organ.color,
+        });
+        removedCards.push(...organ.attached);
+      }
+    }
+  }
+
+  if (removedCards.length) {
+    game.discard.push(...removedCards);
+  }
+
+  if (removedPlayerName) {
+    game.history.unshift(`${removedPlayerName} abandonó la partida`);
+  }
+
+  if (game.history.length > 999) {
+    game.history.splice(999);
+  }
+
+  if (game.players.length === 0) {
+    clearGame(roomId);
+    return { game: null, removed: true };
+  }
+
+  if (privateIdx !== -1 && privateIdx < originalTurnIndex) {
+    game.turnIndex = Math.max(0, originalTurnIndex - 1);
+  } else if (game.turnIndex >= game.players.length) {
+    game.turnIndex = 0;
+  }
+
+  if (wasCurrentPlayer) {
+    const now = Date.now();
+    game.turnStartedAt = now;
+    game.turnDeadlineTs = now + TURN_DURATION_MS;
+    scheduleTurnTimer(roomId, games, turnTimers, endTurn);
+  }
+
+  return { game, removed: true };
+};
