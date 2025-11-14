@@ -5,6 +5,7 @@ import {
   PlayCardTarget,
   GameState,
   TransplantTarget,
+  AnyPlayTarget,
 } from '../../interfaces/Game.interface.js';
 
 import { playOrganCard } from './organ-card.service.js';
@@ -15,6 +16,7 @@ import { playOrganThief } from './treatment/organ-thief.service.js';
 import { playContagion } from './treatment/contagion.service.js';
 import { playGlove } from './treatment/glove.service.js';
 import { playMedicalError } from './treatment/medical-error.service.js';
+import { playTrickOrTreat } from './treatment/trick-or-treat.service.js';
 import { endTurn } from '../game.service.js';
 import { drawCardInternal } from './draw-card.service.js';
 import { checkVictory } from '../../utils/victory-utils.js';
@@ -25,7 +27,7 @@ export const playCardInternal =
     roomId: string,
     playerId: string,
     cardId: string,
-    target?: PlayCardTarget | TransplantTarget
+    target?: AnyPlayTarget
   ): PlayCardResult => {
     const g = games.get(roomId);
     if (!g) return { success: false, error: GAME_ERRORS.NO_GAME };
@@ -96,9 +98,17 @@ export const playCardInternal =
             break;
 
           case TreatmentSubtype.MedicalError: {
-            const t = requireSimpleTarget(target);
+            const t = requirePlayerTarget(target);
             res = t
               ? playMedicalError(g, ps, cardIdx, t)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
+
+          case TreatmentSubtype.trickOrTreat: {
+            const t = requirePlayerTarget(target);
+            res = t
+              ? playTrickOrTreat(g, ps, cardIdx, t)
               : { success: false, error: GAME_ERRORS.NO_TARGET };
             break;
           }
@@ -133,14 +143,20 @@ export const playCardInternal =
     return res;
   };
 
-const requireSimpleTarget = (target?: PlayCardTarget | TransplantTarget): PlayCardTarget | null => {
-  if (!target || 'a' in target) return null;
-  return target;
+const requireSimpleTarget = (target?: AnyPlayTarget): PlayCardTarget | null => {
+  if (!target || Array.isArray(target) || 'a' in (target as any)) return null;
+  if (!('organId' in (target as any)) || !(target as any).organId) return null;
+  if (!('playerId' in (target as any)) || !(target as any).playerId) return null;
+  return target as PlayCardTarget;
 };
 
-const requireTransplantTarget = (
-  target?: PlayCardTarget | TransplantTarget
-): TransplantTarget | null => {
-  if (!target || !('a' in target)) return null;
-  return target;
+const requireTransplantTarget = (target?: AnyPlayTarget): TransplantTarget | null => {
+  if (!target || Array.isArray(target) || !('a' in (target as any))) return null;
+  return target as TransplantTarget;
+};
+
+const requirePlayerTarget = (target?: AnyPlayTarget): { playerId: string } | null => {
+  if (!target || Array.isArray(target) || 'a' in (target as any)) return null;
+  if (!('playerId' in (target as any)) || !(target as any).playerId) return null;
+  return { playerId: (target as any).playerId };
 };

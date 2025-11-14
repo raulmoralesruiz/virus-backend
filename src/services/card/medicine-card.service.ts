@@ -8,6 +8,8 @@ import {
 import { GAME_ERRORS } from '../../constants/error.constants.js';
 import { canReceiveMedicine, isImmune, isInfected } from '../../utils/organ-utils.js';
 import { withArticle, withOrganArticle } from '../../utils/card-label.utils.js';
+import { getTrickOrTreatOwnerId, setTrickOrTreatOwner } from '../../utils/trick-or-treat.utils.js';
+import { pushHistoryEntry } from '../../utils/history.utils.js';
 
 export const playMedicineCard = (
   g: GameState,
@@ -66,6 +68,7 @@ export const playMedicineCard = (
       const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
       if (pubSelf) pubSelf.handCount = ps.hand.length;
 
+      maybeTransferTrickOrTreat(g, ps.player.id, target.playerId);
       return { success: true };
     }
   }
@@ -77,5 +80,19 @@ export const playMedicineCard = (
   const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
   if (pubSelf) pubSelf.handCount = ps.hand.length;
 
+  maybeTransferTrickOrTreat(g, ps.player.id, target.playerId);
   return { success: true };
+};
+
+const maybeTransferTrickOrTreat = (g: GameState, fromPlayerId: string, toPlayerId: string) => {
+  if (!toPlayerId || !fromPlayerId || fromPlayerId === toPlayerId) return;
+
+  const currentOwner = getTrickOrTreatOwnerId(g);
+  if (!currentOwner || currentOwner !== fromPlayerId) return;
+
+  const targetPublic = g.public.players.find(pp => pp.player.id === toPlayerId);
+  if (!targetPublic) return;
+
+  setTrickOrTreatOwner(g, toPlayerId);
+  pushHistoryEntry(g, `Truco o Trato pasa a ${targetPublic.player.name}`);
 };

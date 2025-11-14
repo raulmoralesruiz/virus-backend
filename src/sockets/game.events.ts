@@ -23,23 +23,20 @@ import {
   MedicalErrorTarget,
   GameState,
   OrganOnBoard,
+  AnyPlayTarget,
 } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
 import { Card, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
 import { describeCard, describeOrganLabel } from '../utils/card-label.utils.js';
+import { pushHistoryEntry } from '../utils/history.utils.js';
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
-const HISTORY_LIMIT = 999;
-
 const addHistoryEntry = (roomId: string, entry: string | null | undefined) => {
   if (!entry) return;
   const game = getGame(roomId);
   if (!game) return;
-  game.history.unshift(entry);
-  if (game.history.length > HISTORY_LIMIT) {
-    game.history.splice(HISTORY_LIMIT);
-  }
+  pushHistoryEntry(game, entry);
 };
 
 const getPlayerName = (game: GameState | undefined, playerId?: string | null) => {
@@ -77,12 +74,12 @@ const isTransplantTarget = (value: any): value is TransplantTarget => {
   );
 };
 
-const isMedicalErrorTarget = (value: any): value is MedicalErrorTarget => {
+const isPlayerOnlyTarget = (value: any): value is MedicalErrorTarget => {
   return (
     value &&
     typeof value === 'object' &&
     typeof value.playerId === 'string' &&
-    !('organId' in value)
+    (!('organId' in value) || !value.organId)
   );
 };
 
@@ -130,7 +127,7 @@ const describeTargetSuffix = (
     return ` sobre ${targetPlayer}`;
   }
 
-  if (isMedicalErrorTarget(target)) {
+  if (isPlayerOnlyTarget(target)) {
     const targetPlayer = getPlayerName(game, target.playerId);
     return ` a ${targetPlayer}`;
   }
@@ -305,7 +302,7 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
   socket.on(
     GAME_CONSTANTS.GAME_PLAY_CARD,
-    (data: { roomId: string; cardId: string; target?: PlayCardTarget }) => {
+    (data: { roomId: string; cardId: string; target?: AnyPlayTarget }) => {
       const { roomId, cardId, target } = data || {};
       const playerId = socket.data?.playerId;
 

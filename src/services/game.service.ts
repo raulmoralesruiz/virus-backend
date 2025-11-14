@@ -10,6 +10,8 @@ import { drawCardInternal } from './card/draw-card.service.js';
 import { clearGameInternal, endTurnInternal, isPlayersTurnInternal } from './turn/turn.service.js';
 import { getPlayerHandInternal, getPublicStateInternal } from './query/query.service.js';
 import { discardCardsInternal } from './card/discard-card.service.js';
+import { pushHistoryEntry } from '../utils/history.utils.js';
+import { setTrickOrTreatOwner } from '../utils/trick-or-treat.utils.js';
 
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
@@ -27,12 +29,14 @@ export const startGame = (roomId: string, players: Player[]): GameState => {
   const privateStates: PlayerState[] = players.map(player => ({
     player: player,
     hand: deck.splice(0, 3), // 3 cartas iniciales
+    hasTrickOrTreat: false,
   }));
 
   const publicPlayers: PublicPlayerInfo[] = privateStates.map(ps => ({
     player: ps.player,
     handCount: ps.hand.length,
     board: [], // mesa vacía al inicio
+    hasTrickOrTreat: false,
   }));
 
   const now = Date.now();
@@ -96,6 +100,9 @@ export const removePlayerFromGame = (
   const removedCards: Card[] = [];
   let removedPlayerName: string | undefined;
   const wasCurrentPlayer = privateIdx === originalTurnIndex;
+  const removedHadTrickOrTreat = game.public.players.some(
+    p => p.player.id === playerId && p.hasTrickOrTreat
+  );
 
   if (privateIdx !== -1) {
     const [removedPrivate] = game.players.splice(privateIdx, 1);
@@ -124,12 +131,16 @@ export const removePlayerFromGame = (
     game.discard.push(...removedCards);
   }
 
-  if (removedPlayerName) {
-    game.history.unshift(`${removedPlayerName} abandonó la partida`);
+  if (removedHadTrickOrTreat) {
+    setTrickOrTreatOwner(game, null);
+    pushHistoryEntry(
+      game,
+      `Truco o Trato desaparece tras la salida de ${removedPlayerName ?? 'un jugador'}`
+    );
   }
 
-  if (game.history.length > 999) {
-    game.history.splice(999);
+  if (removedPlayerName) {
+    pushHistoryEntry(game, `${removedPlayerName} abandonó la partida`);
   }
 
   if (game.players.length === 0) {

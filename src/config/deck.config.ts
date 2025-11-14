@@ -70,12 +70,12 @@ export const BASE_DECK_CONFIG: DeckEntry[] = [
  * Expansión Halloween.
  */
 export const EXPANSION_HALLOWEEN_DECK_CONFIG: DeckEntry[] = [
-  // {
-  //   kind: CardKind.Treatment,
-  //   color: CardColor.Halloween,
-  //   count: 1,
-  //   subtype: TreatmentSubtype.trickOrTreat,
-  // },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 19,
+    subtype: TreatmentSubtype.trickOrTreat,
+  },
   // {
   //   kind: CardKind.Treatment,
   //   color: CardColor.Halloween,

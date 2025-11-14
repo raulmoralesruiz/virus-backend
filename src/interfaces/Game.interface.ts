@@ -5,12 +5,14 @@ export interface PlayerState {
   player: Player;
   hand: Card[];
   skipNextTurn?: boolean;
+  hasTrickOrTreat?: boolean;
 }
 
 export interface PublicPlayerInfo {
   player: Player;
   board: OrganOnBoard[]; // cartas visibles en mesa
   handCount: number; // solo el número de cartas en mano, no cuáles son
+  hasTrickOrTreat?: boolean;
 }
 
 export interface GameState {
@@ -95,3 +97,9 @@ export interface ContagionTarget {
 export interface MedicalErrorTarget {
   playerId: string;
 }
+
+export type AnyPlayTarget =
+  | PlayCardTarget
+  | TransplantTarget
+  | MedicalErrorTarget
+  | ContagionTarget[];
