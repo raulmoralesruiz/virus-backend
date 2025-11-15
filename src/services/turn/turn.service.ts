@@ -48,7 +48,8 @@ export const endTurnInternal =
 
     const now = Date.now();
     g.turnStartedAt = now;
-    g.turnDeadlineTs = now + TURN_DURATION_MS;
+    const duration = g.turnDurationMs ?? TURN_DURATION_MS;
+    g.turnDeadlineTs = now + duration;
 
     scheduleTurnTimer(roomId, games, turnTimers, endTurnInternal(games, turnTimers));
     return g;

@@ -194,7 +194,7 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       return;
     }
 
-    startGame(roomId, players);
+    startGame(roomId, players, room.config);
     setRoomInProgress(roomId, true);
     wsEmitter.emitRoomsList();
     addHistoryEntry(roomId, 'Comienza la partida');
@@ -434,7 +434,7 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     if (!room) return;
 
     // Reiniciar partida
-    startGame(roomId, room.players);
+    startGame(roomId, room.players, room.config);
     setRoomInProgress(roomId, true);
     wsEmitter.emitRoomsList();
     addHistoryEntry(roomId, 'La partida se reinició');

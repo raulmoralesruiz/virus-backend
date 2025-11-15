@@ -27,6 +27,7 @@ export interface GameState {
   turnIndex: number; // índice del jugador activo en `players`
   turnStartedAt: number; // epoch ms
   turnDeadlineTs: number; // epoch ms (turnStartedAt + TURN_DURATION_MS)
+  turnDurationMs?: number;
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
   history: string[]; // historial textual de acciones
 }

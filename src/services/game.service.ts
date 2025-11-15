@@ -12,18 +12,30 @@ import { getPlayerHandInternal, getPublicStateInternal } from './query/query.ser
 import { discardCardsInternal } from './card/discard-card.service.js';
 import { pushHistoryEntry } from '../utils/history.utils.js';
 import { setTrickOrTreatOwner } from '../utils/trick-or-treat.utils.js';
+import { RoomConfig } from '../interfaces/Room.interface.js';
 
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
 const turnTimers = new Map<string, NodeJS.Timeout>();
 
+const TURN_TIMER_OPTIONS = new Set([30, 60, 90, 120]);
+const computeTurnDurationMs = (config?: RoomConfig): number => {
+  const timerSeconds = config?.timerSeconds;
+  if (typeof timerSeconds === 'number' && TURN_TIMER_OPTIONS.has(timerSeconds)) {
+    return timerSeconds * 1000;
+  }
+  return TURN_DURATION_MS;
+};
+
 // --- Gestión de partida ---
-export const startGame = (roomId: string, players: Player[]): GameState => {
+export const startGame = (roomId: string, players: Player[], config?: RoomConfig): GameState => {
   logger.info(`game.service - startGame room=${roomId} players=${players.length}`);
 
   // si ya existe, la reiniciamos
-  const deck = buildDeck();
+  const includeHalloweenExpansion = config?.mode === 'halloween';
+  const deck = buildDeck({ includeHalloweenExpansion });
   const discard: Card[] = [];
+  const turnDurationMs = computeTurnDurationMs(config);
 
   // Repartir mano inicial: 3 cartas por jugador
   const privateStates: PlayerState[] = players.map(player => ({
@@ -49,7 +61,8 @@ export const startGame = (roomId: string, players: Player[]): GameState => {
     startedAt: new Date().toISOString(),
     turnIndex: 0,
     turnStartedAt: now,
-    turnDeadlineTs: now + TURN_DURATION_MS,
+    turnDeadlineTs: now + turnDurationMs,
+    turnDurationMs,
     history: [],
   };
 
@@ -168,7 +181,8 @@ export const removePlayerFromGame = (
   if (wasCurrentPlayer) {
     const now = Date.now();
     game.turnStartedAt = now;
-    game.turnDeadlineTs = now + TURN_DURATION_MS;
+    const duration = game.turnDurationMs ?? TURN_DURATION_MS;
+    game.turnDeadlineTs = now + duration;
     scheduleTurnTimer(roomId, games, turnTimers, endTurn);
   }
 

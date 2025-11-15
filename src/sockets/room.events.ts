@@ -6,6 +6,7 @@ import {
   getRooms,
   joinRoom,
   leaveRoom,
+  updateRoomConfig,
 } from '../services/room.service.js';
 import { ROOM_CONSTANTS } from '../constants/room.constants.js';
 import { logger } from '../utils/logger.js';
@@ -114,6 +115,34 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
         io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
       }
     }
+  });
+
+  socket.on(ROOM_CONSTANTS.ROOM_CONFIG_UPDATE, ({ roomId, config }) => {
+    logger.info(`${ROOM_CONSTANTS.ROOM_CONFIG_UPDATE} - roomId=${roomId}`);
+
+    if (!roomId || !config) return;
+
+    const room = getRooms().find(r => r.id === roomId);
+    if (!room) return;
+
+    const requesterId = socket.data?.playerId;
+    if (!requesterId || room.hostId !== requesterId) {
+      logger.warn(
+        `${ROOM_CONSTANTS.ROOM_CONFIG_UPDATE} - Player ${requesterId} is not host of ${roomId}`
+      );
+      return;
+    }
+
+    if (room.inProgress) {
+      logger.warn(
+        `${ROOM_CONSTANTS.ROOM_CONFIG_UPDATE} - Room ${roomId} is in progress, skipping update`
+      );
+      return;
+    }
+
+    updateRoomConfig(roomId, config);
+    wsEmitter.emitRoomUpdated(roomId);
+    wsEmitter.emitRoomsList();
   });
 
   // Additional room-related events can be registered here

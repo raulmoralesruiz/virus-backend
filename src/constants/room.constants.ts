@@ -9,4 +9,5 @@ export const ROOM_CONSTANTS = {
 
   ROOM_GET_ALL: 'room:getAll', // (no usado en híbrida, pero reservado)
   ROOMS_LIST: 'rooms:list', // usado para broadcast del lobby
+  ROOM_CONFIG_UPDATE: 'room:config:update',
 } as const;

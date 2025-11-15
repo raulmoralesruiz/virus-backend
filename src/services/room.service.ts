@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { Room } from '../interfaces/Room.interface.js';
+import { Room, RoomConfig, RoomGameMode, RoomTimerSeconds } from '../interfaces/Room.interface.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
 import { GameState } from '../interfaces/Game.interface.js';
@@ -7,6 +7,42 @@ import { getPlayerById } from './player.service.js';
 import { clearGame, removePlayerFromGame } from './game.service.js';
 
 const rooms: Room[] = [];
+const DEFAULT_ROOM_CONFIG: RoomConfig = {
+  mode: 'halloween',
+  timerSeconds: 60,
+};
+
+const ROOM_TIMER_OPTIONS: RoomTimerSeconds[] = [30, 60, 90, 120];
+const ROOM_MODE_OPTIONS: RoomGameMode[] = ['base', 'halloween'];
+
+export const createDefaultRoomConfig = (): RoomConfig => ({
+  ...DEFAULT_ROOM_CONFIG,
+});
+
+const sanitizeRoomConfig = (room: Room, config?: Partial<RoomConfig>) => {
+  if (!config) return null;
+  const next: Partial<RoomConfig> = {};
+
+  if (config.mode && ROOM_MODE_OPTIONS.includes(config.mode)) {
+    next.mode = config.mode;
+  }
+
+  if (
+    typeof config.timerSeconds === 'number' &&
+    ROOM_TIMER_OPTIONS.includes(config.timerSeconds as RoomTimerSeconds)
+  ) {
+    next.timerSeconds = config.timerSeconds as RoomTimerSeconds;
+  }
+
+  if (!Object.keys(next).length) return null;
+
+  room.config = {
+    ...room.config,
+    ...next,
+  };
+
+  return room;
+};
 
 export const generateRoomId = () => randomUUID();
 
@@ -29,6 +65,7 @@ export const createRoom = (player: Player, visibility: RoomVisibility = 'public'
     players: [],
     inProgress: false,
     visibility,
+    config: createDefaultRoomConfig(),
   };
   logger.info(
     `room.service - New room created with ID: ${roomId}, Name: ${roomName} and visibility: ${visibility}`
@@ -170,6 +207,13 @@ export const leaveRoom = (
   }
 
   return { room, removed: false, game: gameInfo.game, gamePlayerRemoved: gameInfo.removed };
+};
+
+export const updateRoomConfig = (roomId: string, config: Partial<RoomConfig>) => {
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) return null;
+  const updated = sanitizeRoomConfig(room, config);
+  return updated ?? room;
 };
 
 // util para tests/manual
