@@ -104,4 +104,20 @@ export const GAME_ERRORS = {
     code: 'NO_VIRUS',
     message: 'Virus no encontrado',
   },
+  ORGAN_NOT_INFECTED_OR_VACCINATED: {
+    code: 'ORGAN_NOT_INFECTED_OR_VACCINATED',
+    message: 'El órgano debe estar infectado o vacunado',
+  },
+  ORGAN_NOT_VACCINATED: {
+    code: 'ORGAN_NOT_VACCINATED',
+    message: 'El órgano no está vacunado',
+  },
+  INVALID_ACTION: {
+    code: 'INVALID_ACTION',
+    message: 'Acción no válida',
+  },
+  ORGAN_NOT_INFECTED: {
+    code: 'ORGAN_NOT_INFECTED',
+    message: 'El órgano no está infectado',
+  },
 } as const;

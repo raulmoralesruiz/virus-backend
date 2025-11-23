@@ -99,8 +99,13 @@ export interface MedicalErrorTarget {
   playerId: string;
 }
 
+export interface FailedExperimentTarget extends PlayCardTarget {
+  action: 'cure' | 'extirpate' | 'remove-medicine' | 'immunize';
+}
+
 export type AnyPlayTarget =
   | PlayCardTarget
   | TransplantTarget
   | MedicalErrorTarget
-  | ContagionTarget[];
+  | ContagionTarget[]
+  | FailedExperimentTarget;

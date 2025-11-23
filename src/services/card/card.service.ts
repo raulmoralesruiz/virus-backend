@@ -20,6 +20,7 @@ import { playTrickOrTreat } from './treatment/trick-or-treat.service.js';
 import { endTurn } from '../game.service.js';
 import { drawCardInternal } from './draw-card.service.js';
 import { checkVictory } from '../../utils/victory-utils.js';
+import { playFailedExperiment } from './treatment/failed-experiment.service.js';
 
 export const playCardInternal =
   (games: Map<string, GameState>) =>
@@ -113,6 +114,14 @@ export const playCardInternal =
             break;
           }
 
+          case TreatmentSubtype.failedExperiment: {
+            const t = requireFailedExperimentTarget(target);
+            res = t
+              ? playFailedExperiment(g, ps, cardIdx, t)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
+
           default:
             res = { success: false, error: GAME_ERRORS.UNSUPPORTED_TREATMENT };
             break;
@@ -159,4 +168,12 @@ const requirePlayerTarget = (target?: AnyPlayTarget): { playerId: string } | nul
   if (!target || Array.isArray(target) || 'a' in (target as any)) return null;
   if (!('playerId' in (target as any)) || !(target as any).playerId) return null;
   return { playerId: (target as any).playerId };
+};
+
+const requireFailedExperimentTarget = (target?: AnyPlayTarget): FailedExperimentTarget | null => {
+  if (!target || Array.isArray(target) || 'a' in (target as any)) return null;
+  if (!('organId' in (target as any)) || !(target as any).organId) return null;
+  if (!('playerId' in (target as any)) || !(target as any).playerId) return null;
+  if (!('action' in (target as any)) || !(target as any).action) return null;
+  return target as FailedExperimentTarget;
 };
