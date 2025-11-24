@@ -100,7 +100,7 @@ export interface MedicalErrorTarget {
 }
 
 export interface FailedExperimentTarget extends PlayCardTarget {
-  action: 'cure' | 'extirpate' | 'remove-medicine' | 'immunize';
+  action: 'medicine' | 'virus';
 }
 
 export type AnyPlayTarget =

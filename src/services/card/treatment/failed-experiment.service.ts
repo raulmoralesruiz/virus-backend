@@ -1,13 +1,14 @@
 import { GAME_ERRORS } from '../../../constants/error.constants.js';
-import { Card, CardKind } from '../../../interfaces/Card.interface.js';
+import { Card, CardColor, CardKind } from '../../../interfaces/Card.interface.js';
 import {
   GameState,
   PlayCardResult,
   PlayerState,
   FailedExperimentTarget,
-  OrganOnBoard,
 } from '../../../interfaces/Game.interface.js';
-import { isImmune, isVaccinated, isInfected } from '../../../utils/organ-utils.js';
+import { isVaccinated, isInfected } from '../../../utils/organ-utils.js';
+import { playMedicineCard } from '../medicine-card.service.js';
+import { playVirusCard } from '../virus-card.service.js';
 
 export const playFailedExperiment = (
   g: GameState,
@@ -31,54 +32,48 @@ export const playFailedExperiment = (
     return { success: false, error: GAME_ERRORS.NO_ORGAN };
   }
 
+  // RESTRICCIÓN: Solo sobre órgano infectado o vacunado
   if (!isInfected(organ) && !isVaccinated(organ)) {
     return { success: false, error: GAME_ERRORS.ORGAN_NOT_INFECTED_OR_VACCINATED };
   }
 
-  switch (target.action) {
-    case 'cure':
-      if (!isInfected(organ)) {
-        return { success: false, error: GAME_ERRORS.ORGAN_NOT_INFECTED };
-      }
-      const virusIdx = organ.attached.findIndex(c => c.kind === CardKind.Virus);
-      if (virusIdx > -1) {
-        const [removed] = organ.attached.splice(virusIdx, 1);
-        g.discard.push(removed);
-      }
-      break;
+  // Modificamos temporalmente la carta en mano para que actúe como Medicina o Virus Multicolor
+  const originalKind = card.kind;
+  const originalColor = card.color;
 
-    case 'extirpate':
-      const organCard: Card = { id: organ.id, kind: organ.kind, color: organ.color };
-      g.discard.push(organCard, ...organ.attached);
-      targetPlayer.board = targetPlayer.board.filter(o => o.id !== organ.id);
-      break;
-
-    case 'remove-medicine':
-      if (!isVaccinated(organ)) {
-        return { success: false, error: GAME_ERRORS.ORGAN_NOT_VACCINATED };
+  try {
+    if (target.action === 'medicine') {
+      card.kind = CardKind.Medicine;
+      card.color = CardColor.Multi;
+      const res = playMedicineCard(g, ps, cardIdx, { playerId: target.playerId, organId: target.organId });
+      
+      // Si falló, restauramos la carta
+      if (!res.success) {
+        card.kind = originalKind;
+        card.color = originalColor;
       }
-      const medIdx = organ.attached.findIndex(c => c.kind === CardKind.Medicine);
-      if (medIdx > -1) {
-        const [removed] = organ.attached.splice(medIdx, 1);
-        g.discard.push(removed);
-      }
-      break;
+      return res;
+    } 
+    
+    if (target.action === 'virus') {
+      card.kind = CardKind.Virus;
+      card.color = CardColor.Multi;
+      const res = playVirusCard(g, ps, cardIdx, { playerId: target.playerId, organId: target.organId });
 
-    case 'immunize':
-      if (isImmune(organ)) {
-        return { success: false, error: GAME_ERRORS.ALREADY_IMMUNE };
+      // Si falló, restauramos la carta
+      if (!res.success) {
+        card.kind = originalKind;
+        card.color = originalColor;
       }
-      const playedCard = ps.hand.splice(cardIdx, 1)[0];
-      const vaccine: Card = { ...playedCard, kind: CardKind.Medicine, color: organ.color, subtype: undefined };
-      organ.attached.push(vaccine);
-      return { success: true };
+      return res;
+    }
 
-    default:
-      return { success: false, error: GAME_ERRORS.INVALID_ACTION };
+    return { success: false, error: GAME_ERRORS.INVALID_ACTION };
+
+  } catch (error) {
+    // Por si acaso explota algo, restauramos
+    card.kind = originalKind;
+    card.color = originalColor;
+    throw error;
   }
-
-  ps.hand.splice(cardIdx, 1);
-  g.discard.push(card);
-
-  return { success: true };
 };
