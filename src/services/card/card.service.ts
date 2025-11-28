@@ -6,6 +6,7 @@ import {
   GameState,
   TransplantTarget,
   AnyPlayTarget,
+  FailedExperimentTarget,
 } from '../../interfaces/Game.interface.js';
 
 import { playOrganCard } from './organ-card.service.js';
