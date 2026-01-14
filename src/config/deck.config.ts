@@ -79,7 +79,31 @@ export const EXPANSION_HALLOWEEN_DECK_CONFIG: DeckEntry[] = [
   {
     kind: CardKind.Treatment,
     color: CardColor.Halloween,
-    count: 22,
+    count: 2,
     subtype: TreatmentSubtype.failedExperiment,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 11,
+    subtype: TreatmentSubtype.ColorThiefRed,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 11,
+    subtype: TreatmentSubtype.ColorThiefGreen,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 11,
+    subtype: TreatmentSubtype.ColorThiefBlue,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 11,
+    subtype: TreatmentSubtype.ColorThiefYellow,
   },
 ];

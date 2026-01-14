@@ -24,6 +24,10 @@ export enum TreatmentSubtype {
   // Halloween
   failedExperiment = 'failedExperiment', // Experimento fallido
   trickOrTreat = 'trickOrTreat', // Truco o trato (calabaza)
+  ColorThiefRed = 'colorThiefRed',
+  ColorThiefGreen = 'colorThiefGreen',
+  ColorThiefBlue = 'colorThiefBlue',
+  ColorThiefYellow = 'colorThiefYellow',
 }
 
 export interface Card {

@@ -22,6 +22,7 @@ import { endTurn } from '../game.service.js';
 import { drawCardInternal } from './draw-card.service.js';
 import { checkVictory } from '../../utils/victory-utils.js';
 import { playFailedExperiment } from './treatment/failed-experiment.service.js';
+import { playColorThief } from './treatment/color-thief.service.js';
 
 export const playCardInternal =
   (games: Map<string, GameState>) =>
@@ -119,6 +120,40 @@ export const playCardInternal =
             const t = requireFailedExperimentTarget(target);
             res = t
               ? playFailedExperiment(g, ps, cardIdx, t)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
+
+        break;
+
+          case TreatmentSubtype.ColorThiefRed: {
+            const t = requireSimpleTarget(target);
+            res = t
+              ? playColorThief(g, ps, cardIdx, t, CardColor.Red)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
+
+          case TreatmentSubtype.ColorThiefGreen: {
+            const t = requireSimpleTarget(target);
+            res = t
+              ? playColorThief(g, ps, cardIdx, t, CardColor.Green)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
+
+          case TreatmentSubtype.ColorThiefBlue: {
+            const t = requireSimpleTarget(target);
+            res = t
+              ? playColorThief(g, ps, cardIdx, t, CardColor.Blue)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
+
+          case TreatmentSubtype.ColorThiefYellow: {
+            const t = requireSimpleTarget(target);
+            res = t
+              ? playColorThief(g, ps, cardIdx, t, CardColor.Yellow)
               : { success: false, error: GAME_ERRORS.NO_TARGET };
             break;
           }
