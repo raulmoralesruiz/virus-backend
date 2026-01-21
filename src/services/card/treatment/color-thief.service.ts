@@ -26,7 +26,7 @@ export const playColorThief = (
 
   // El órgano debe coincidir con el color objetivo de la carta
   if (organ.color !== targetColor) {
-    return { success: false, error: GAME_ERRORS.INVALID_TARGET };
+    return { success: false, error: GAME_ERRORS.COLOR_MISMATCH };
   }
 
   // NO comprobamos inmunidad (isImmune). El ladrón de colores puede robar todo.

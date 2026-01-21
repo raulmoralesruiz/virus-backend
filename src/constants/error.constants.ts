@@ -74,7 +74,7 @@ export const GAME_ERRORS = {
   },
   COLOR_MISMATCH: {
     code: 'COLOR_MISMATCH',
-    message: 'El color de la carta no coincide en color con el órgano',
+    message: 'La carta no coincide con el color del órgano',
   },
   UNSUPPORTED_CARD: {
     code: 'UNSUPPORTED_CARD',
