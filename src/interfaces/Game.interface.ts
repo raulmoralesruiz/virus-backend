@@ -103,9 +103,14 @@ export interface FailedExperimentTarget extends PlayCardTarget {
   action: 'medicine' | 'virus';
 }
 
+export interface BodySwapTarget {
+  direction: 'clockwise' | 'counter-clockwise';
+}
+
 export type AnyPlayTarget =
   | PlayCardTarget
   | TransplantTarget
   | MedicalErrorTarget
   | ContagionTarget[]
-  | FailedExperimentTarget;
+  | FailedExperimentTarget
+  | BodySwapTarget;

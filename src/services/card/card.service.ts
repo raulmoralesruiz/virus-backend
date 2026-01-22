@@ -23,6 +23,7 @@ import { drawCardInternal } from './draw-card.service.js';
 import { checkVictory } from '../../utils/victory-utils.js';
 import { playFailedExperiment } from './treatment/failed-experiment.service.js';
 import { playColorThief } from './treatment/color-thief.service.js';
+import { playBodySwap } from './treatment/body-swap.service.js';
 
 export const playCardInternal =
   (games: Map<string, GameState>) =>
@@ -158,6 +159,14 @@ export const playCardInternal =
             break;
           }
 
+          case TreatmentSubtype.BodySwap: {
+            const t = requireBodySwapTarget(target);
+            res = t
+              ? playBodySwap(g, ps, cardIdx, t)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
+
           default:
             res = { success: false, error: GAME_ERRORS.UNSUPPORTED_TREATMENT };
             break;
@@ -212,4 +221,12 @@ const requireFailedExperimentTarget = (target?: AnyPlayTarget): FailedExperiment
   if (!('playerId' in (target as any)) || !(target as any).playerId) return null;
   if (!('action' in (target as any)) || !(target as any).action) return null;
   return target as FailedExperimentTarget;
+};
+
+const requireBodySwapTarget = (target?: AnyPlayTarget): { direction: 'clockwise' | 'counter-clockwise' } | null => {
+  if (!target || Array.isArray(target)) return null;
+  if (!('direction' in (target as any))) return null;
+  const d = (target as any).direction;
+  if (d !== 'clockwise' && d !== 'counter-clockwise') return null;
+  return { direction: d };
 };
