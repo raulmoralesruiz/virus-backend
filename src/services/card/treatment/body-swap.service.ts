@@ -58,11 +58,11 @@ export const playBodySwap = (
     p.hasTrickOrTreat = newStates[index].hasTrickOrTreat;
   });
 
-  const directionText = target.direction === 'clockwise' ? 'horario' : 'antihorario';
-  pushHistoryEntry(
-    game,
-    `¡${playerState.player.name} provocó un Cambio de Cuerpos en sentido ${directionText}!`
-  );
+  // const directionText = target.direction === 'clockwise' ? 'horario' : 'antihorario';
+  // pushHistoryEntry(
+  //   game,
+  //   `¡${playerState.player.name} provocó un Cambio de Cuerpos en sentido ${directionText}!`
+  // );
 
   return { success: true };
 };
