@@ -11,6 +11,7 @@ export const mapToPublicState = (g: GameState): PublicGameState => {
     roomId: g.roomId,
     startedAt: g.startedAt,
     discardCount: g.discard.length,
+    topDiscard: g.discard.length ? g.discard[g.discard.length - 1] : undefined,
     deckCount: g.deck.length,
     players: g.public.players,
     turnIndex: g.turnIndex,

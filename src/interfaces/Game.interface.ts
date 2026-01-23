@@ -36,6 +36,7 @@ export interface PublicGameState {
   roomId: string;
   startedAt: string;
   discardCount: number;
+  topDiscard?: Card; // última carta descartada visible
   deckCount: number;
   players: PublicPlayerInfo[];
   turnIndex: number;

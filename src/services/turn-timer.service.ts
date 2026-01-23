@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import { getIO } from '../ws/io.js';
 import { discardCardsInternal } from './card/discard-card.service.js';
 import { getRooms } from './room.service.js';
+import { mapToPublicState } from './query/query.service.js';
 
 // --- Timer interno por sala ---
 export const scheduleTurnTimer = (
@@ -27,18 +28,11 @@ export const scheduleTurnTimer = (
     const msLeft = Math.max(0, game.turnDeadlineTs - Date.now());
     const remainingSeconds = Math.max(0, Math.ceil(msLeft / 1000));
 
-    io.to(roomId).volatile.emit(GAME_CONSTANTS.GAME_STATE, {
-      roomId: game.roomId,
-      startedAt: game.startedAt,
-      discardCount: game.discard.length,
-      deckCount: game.deck.length,
-      players: game.public.players,
-      turnIndex: game.turnIndex,
-      turnDeadlineTs: game.turnDeadlineTs,
-      remainingSeconds,
-      winner: (game as any).winner ?? null,
-      history: game.history,
-    });
+    const publicState = mapToPublicState(game);
+    // Sobrescribir remainingSeconds con el cálculo actual
+    publicState.remainingSeconds = remainingSeconds;
+
+    io.to(roomId).volatile.emit(GAME_CONSTANTS.GAME_STATE, publicState);
   };
 
   // emitir inmediatamente para sincronizar clientes justo ahora
