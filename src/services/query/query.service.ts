@@ -19,6 +19,7 @@ export const mapToPublicState = (g: GameState): PublicGameState => {
     remainingSeconds: remaining,
     winner: g.winner,
     history: g.history,
+    pendingAction: g.pendingAction,
   };
 };
 

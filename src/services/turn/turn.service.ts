@@ -23,6 +23,11 @@ export const endTurnInternal =
     const g = games.get(roomId);
     if (!g) return null;
 
+    // Limpiar acción pendiente si existe (el jugador eligió conservarla)
+    if (g.pendingAction) {
+      delete g.pendingAction;
+    }
+
     // avanzar turno
     g.turnIndex = (g.turnIndex + 1) % g.players.length;
     let nextPlayer = g.players[g.turnIndex];

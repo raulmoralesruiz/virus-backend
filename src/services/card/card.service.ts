@@ -25,6 +25,8 @@ import { playFailedExperiment } from './treatment/failed-experiment.service.js';
 import { playColorThief } from './treatment/color-thief.service.js';
 import { playBodySwap } from './treatment/body-swap.service.js';
 
+import { playApparition } from './treatment/apparition.service.js';
+
 export const playCardInternal =
   (games: Map<string, GameState>) =>
   (
@@ -48,6 +50,26 @@ export const playCardInternal =
     if (cardIdx === -1) return { success: false, error: GAME_ERRORS.NO_CARD };
 
     const card = ps.hand[cardIdx];
+
+    // 1.5 Verificar acciones pendientes (Aparición)
+    if (g.pendingAction) {
+      if (g.pendingAction.playerId !== playerId) {
+        // No debería pasar si es tu turno, pero por seguridad
+        return { success: false, error: GAME_ERRORS.NOT_YOUR_TURN };
+      }
+      if (
+        g.pendingAction.type === 'ApparitionDecision' &&
+        g.pendingAction.cardId !== cardId
+      ) {
+        return {
+          success: false,
+          error: {
+            code: 'MUST_PLAY_APPARITION_CARD',
+            message: 'Debes jugar la carta robada o pasar turno',
+          },
+        };
+      }
+    }
 
     // 2️⃣ Resolver jugada con los servicios existentes
     let res: PlayCardResult = { success: false, error: GAME_ERRORS.UNSUPPORTED_CARD };
@@ -167,6 +189,10 @@ export const playCardInternal =
             break;
           }
 
+          case TreatmentSubtype.Apparition:
+            res = playApparition(g, ps, cardIdx);
+            break;
+
           default:
             res = { success: false, error: GAME_ERRORS.UNSUPPORTED_TREATMENT };
             break;
@@ -189,9 +215,23 @@ export const playCardInternal =
       }
 
       // si no hay ganador → sigue flujo normal
+
+      // EXCEPCIÓN: Si se jugó Aparición, no robamos ni pasamos turno (hay una decisión pendiente)
+      if (
+        card.kind === CardKind.Treatment &&
+        card.subtype === TreatmentSubtype.Apparition
+      ) {
+        return res;
+      }
+
       const draw = drawCardInternal(games);
       draw(roomId, playerId); // roba automáticamente 1 carta
       endTurn(roomId);
+    }
+
+    if (res.success && g.pendingAction?.type === 'ApparitionDecision') {
+      // Si la jugada fue exitosa y era la carta pendiente, limpiamos el estado
+      delete g.pendingAction;
     }
 
     return res;

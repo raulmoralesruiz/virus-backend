@@ -30,6 +30,7 @@ export interface GameState {
   turnDurationMs?: number;
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
   history: string[]; // historial textual de acciones
+  pendingAction?: ApparitionDecision;
 }
 
 export interface PublicGameState {
@@ -44,6 +45,7 @@ export interface PublicGameState {
   remainingSeconds: number;
   winner?: PublicPlayerInfo;
   history: string[];
+  pendingAction?: ApparitionDecision;
 }
 
 export interface PlayerHandPayload {
@@ -106,6 +108,12 @@ export interface FailedExperimentTarget extends PlayCardTarget {
 
 export interface BodySwapTarget {
   direction: 'clockwise' | 'counter-clockwise';
+}
+
+export interface ApparitionDecision {
+  type: 'ApparitionDecision';
+  playerId: string;
+  cardId: string;
 }
 
 export type AnyPlayTarget =

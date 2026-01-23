@@ -84,6 +84,10 @@ export const GAME_ERRORS = {
     code: 'UNSUPPORTED_TREATMENT',
     message: 'Tipo de tratamiento no soportado aún',
   },
+  EMPTY_DISCARD: {
+    code: 'EMPTY_DISCARD',
+    message: 'El mazo de descartes está vacío',
+  },
   SERVER_ERROR: {
     code: 'SERVER_ERROR',
     message: 'Error interno',
