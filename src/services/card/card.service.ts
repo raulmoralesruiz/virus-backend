@@ -26,6 +26,7 @@ import { playColorThief } from './treatment/color-thief.service.js';
 import { playBodySwap } from './treatment/body-swap.service.js';
 
 import { playApparition } from './treatment/apparition.service.js';
+import { playAlienTransplant } from './treatment/alien-transplant.service.js';
 
 export const playCardInternal =
   (games: Map<string, GameState>) =>
@@ -192,6 +193,14 @@ export const playCardInternal =
           case TreatmentSubtype.Apparition:
             res = playApparition(g, ps, cardIdx);
             break;
+
+          case TreatmentSubtype.AlienTransplant: {
+            const t = requireTransplantTarget(target);
+            res = t
+              ? playAlienTransplant(g, ps, cardIdx, t.a, t.b)
+              : { success: false, error: GAME_ERRORS.NO_TARGET };
+            break;
+          }
 
           default:
             res = { success: false, error: GAME_ERRORS.UNSUPPORTED_TREATMENT };

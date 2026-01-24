@@ -118,4 +118,10 @@ export const EXPANSION_HALLOWEEN_DECK_CONFIG: DeckEntry[] = [
     count: 1,
     subtype: TreatmentSubtype.Apparition,
   },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 2,
+    subtype: TreatmentSubtype.AlienTransplant,
+  },
 ];
