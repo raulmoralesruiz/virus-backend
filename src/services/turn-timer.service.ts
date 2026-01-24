@@ -55,8 +55,15 @@ export const scheduleTurnTimer = (
       );
 
       // 1) Forzar descarte aleatorio de la mano del jugador activo (si tiene cartas)
+      // EXCEPCIÓN: Si hay una decisión pendiente (Apparition), no descartamos nada.
+      // Simplemente queremos que pase el turno y se quede con la carta.
       const currentPlayer = game.players[game.turnIndex];
-      if (currentPlayer && currentPlayer.hand.length > 0) {
+
+      if (game.pendingAction) {
+        // Limpiamos la acción pendiente y pasamos turno
+        delete game.pendingAction;
+        if (endTurn) endTurn(roomId);
+      } else if (currentPlayer && currentPlayer.hand.length > 0) {
         const randIdx = Math.floor(Math.random() * currentPlayer.hand.length);
         const randomCardId = currentPlayer.hand[randIdx].id;
 

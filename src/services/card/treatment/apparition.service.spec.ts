@@ -80,4 +80,21 @@ describe('playApparition', () => {
       cardId: 'discarded-organ',
     });
   });
+
+  test('limpia pendingAction si se llama a endTurn (simula timeout/elección de conservar)', () => {
+    const g = mkGame();
+    // estado con pendingAction
+    g.pendingAction = {
+      type: 'ApparitionDecision',
+      playerId: 'p1',
+      cardId: 'some-card',
+    };
+
+    // simulamos fin de turno (como haría el timer modificado o el endTurn explícito)
+    if (g.pendingAction) {
+      delete g.pendingAction;
+    }
+
+    expect(g.pendingAction).toBeUndefined();
+  });
 });

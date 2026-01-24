@@ -26,6 +26,7 @@ export const TREATMENT_LABELS: Partial<Record<TreatmentSubtype, string>> = {
   [TreatmentSubtype.failedExperiment]: 'Experimento Fallido',
   [TreatmentSubtype.trickOrTreat]: 'Truco o Trato',
   [TreatmentSubtype.BodySwap]: 'Cambio de Cuerpos',
+  [TreatmentSubtype.Apparition]: 'Aparición',
 };
 
 export const describeColor = (color?: CardColor): string => {
