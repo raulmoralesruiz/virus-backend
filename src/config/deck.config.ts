@@ -127,6 +127,6 @@ export const EXPANSION_HALLOWEEN_DECK_CONFIG: DeckEntry[] = [
   {
     kind: CardKind.Organ,
     color: CardColor.Orange,
-    count: 11,
+    count: 1,
   },
 ];
