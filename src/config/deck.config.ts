@@ -124,4 +124,9 @@ export const EXPANSION_HALLOWEEN_DECK_CONFIG: DeckEntry[] = [
     count: 2,
     subtype: TreatmentSubtype.AlienTransplant,
   },
+  {
+    kind: CardKind.Organ,
+    color: CardColor.Orange,
+    count: 11,
+  },
 ];

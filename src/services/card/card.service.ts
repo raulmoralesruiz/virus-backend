@@ -77,7 +77,8 @@ export const playCardInternal =
 
     switch (card.kind) {
       case CardKind.Organ:
-        res = playOrganCard(g, ps, cardIdx);
+        // Pass optional target (for Mutant Organ replacement)
+        res = playOrganCard(g, ps, cardIdx, requireSimpleTarget(target));
         break;
 
       case CardKind.Virus: {
