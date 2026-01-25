@@ -31,6 +31,7 @@ export interface GameState {
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
   history: string[]; // historial textual de acciones
   pendingAction?: ApparitionDecision;
+  lastActionAt: number; // timestamp for inactivity check (last play/discard/draw)
 }
 
 export interface PublicGameState {

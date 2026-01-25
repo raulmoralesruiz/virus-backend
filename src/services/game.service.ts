@@ -14,6 +14,7 @@ import { pushHistoryEntry } from '../utils/history.utils.js';
 import { setTrickOrTreatOwner } from '../utils/trick-or-treat.utils.js';
 import { RoomConfig } from '../interfaces/Room.interface.js';
 
+
 // Estado en memoria: 1 partida por sala (roomId)
 const games = new Map<string, GameState>();
 const turnTimers = new Map<string, NodeJS.Timeout>();
@@ -64,6 +65,7 @@ export const startGame = (roomId: string, players: Player[], config?: RoomConfig
     turnDeadlineTs: now + turnDurationMs,
     turnDurationMs,
     history: [],
+    lastActionAt: now,
   };
 
   games.set(roomId, game);
@@ -82,8 +84,26 @@ export const drawCard = drawCardInternal(games);
 export const isPlayersTurn = isPlayersTurnInternal(games);
 export const endTurn = endTurnInternal(games, turnTimers);
 export const clearGame = clearGameInternal(games, turnTimers);
-export const playCard = playCardInternal(games);
-export const discardCards = discardCardsInternal(games, endTurn);
+
+const _playCard = playCardInternal(games);
+export const playCard = (...args: Parameters<typeof _playCard>) => {
+  const result = _playCard(...args);
+  if (result.success) {
+    const g = games.get(args[0]);
+    if (g) g.lastActionAt = Date.now();
+  }
+  return result;
+};
+
+const _discardCards = discardCardsInternal(games, endTurn);
+export const discardCards = (...args: Parameters<typeof _discardCards>) => {
+  const result = _discardCards(...args);
+  if (result.success) {
+    const g = games.get(args[0]);
+    if (g) g.lastActionAt = Date.now();
+  }
+  return result;
+};
 
 export const removePlayerFromGame = (
   roomId: string,

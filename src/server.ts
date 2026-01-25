@@ -7,6 +7,7 @@ import { socketConfig } from './config/socket.config.js';
 import { logger } from './utils/logger.js';
 import apiRouter from './api/index.js'; // nuevo: carpeta con controladores REST
 import { initIO } from './ws/io.js';
+import { startInactivityMonitor } from './services/inactivity-monitor.service.js';
 
 const app = express();
 
@@ -28,6 +29,9 @@ const io = initIO(httpServer);
 
 // Registro de eventos WS
 registerSockets(io);
+
+// Iniciar monitor de inactividad
+startInactivityMonitor();
 
 const PORT = 3000;
 httpServer.listen(PORT, () => {
