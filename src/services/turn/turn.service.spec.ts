@@ -40,6 +40,7 @@ describe('endTurnInternal', () => {
       turnStartedAt: Date.now(),
       turnDeadlineTs: Date.now() + 60_000,
       history: [],
+      lastActionAt: Date.now(),
     };
 
     const games = new Map<string, GameState>();

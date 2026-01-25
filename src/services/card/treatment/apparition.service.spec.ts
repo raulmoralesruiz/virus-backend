@@ -23,6 +23,7 @@ const mkGame = (): GameState => {
     turnStartedAt: Date.now(),
     turnDeadlineTs: Date.now() + 60000,
     history: [],
+    lastActionAt: Date.now(),
   };
 };
 

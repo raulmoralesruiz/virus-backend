@@ -26,6 +26,7 @@ const mkGame = (): GameState => {
     turnStartedAt: Date.now(),
     turnDeadlineTs: Date.now() + 60000,
     history: [],
+    lastActionAt: Date.now(),
   };
 };
 
@@ -87,7 +88,7 @@ describe('playColorThief', () => {
 
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.INVALID_TARGET,
+      error: GAME_ERRORS.COLOR_MISMATCH,
     });
     
     // Nadie movió nada
