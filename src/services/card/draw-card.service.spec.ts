@@ -69,14 +69,18 @@ describe('drawCardInternal', () => {
 
   test('recicla descarte cuando el mazo está vacío', () => {
     const g = mkGame();
+    // Necesitamos al menos 2 cartas: una se queda en descarte (top) y otra va al mazo
     g.discard.push({ id: 'c1', kind: CardKind.Organ, color: CardColor.Green });
+    g.discard.push({ id: 'c2', kind: CardKind.Virus, color: CardColor.Red }); // top
     const games = new Map([[g.roomId, g]]);
     const draw = drawCardInternal(games);
 
     const res = draw('r1', 'p1');
     expect(res.success).toBe(true);
     expect(g.players[0].hand.length).toBe(1);
-    expect(g.discard.length).toBe(0);
+    // El descarte debe conservar la última carta
+    expect(g.discard.length).toBe(1);
+    expect(g.discard[0].id).toBe('c2');
   });
 
   test('falla si se alcanza el límite de cartas en mano', () => {
