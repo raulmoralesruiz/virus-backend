@@ -11,3 +11,5 @@ export const ROOM_CONSTANTS = {
   ROOMS_LIST: 'rooms:list', // usado para broadcast del lobby
   ROOM_CONFIG_UPDATE: 'room:config:update',
 } as const;
+
+export const MAX_ROOM_PLAYERS = 6;

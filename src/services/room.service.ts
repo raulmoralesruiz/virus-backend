@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Room, RoomConfig, RoomGameMode, RoomTimerSeconds } from '../interfaces/Room.interface.js';
+import { MAX_ROOM_PLAYERS } from '../constants/room.constants.js';
 import { logger } from '../utils/logger.js';
 import { Player } from '../interfaces/Player.interface.js';
 import { GameState } from '../interfaces/Game.interface.js';
@@ -88,6 +89,11 @@ export const joinRoom = (roomKey: string, player: Player) => {
 
   if (room.inProgress) {
     logger.info(`room.service - Room ${room.id} is already in progress. Join rejected.`);
+    return null;
+  }
+
+  if (room.players.length >= MAX_ROOM_PLAYERS) {
+    logger.info(`room.service - Room ${room.id} is full. Join rejected.`);
     return null;
   }
 
