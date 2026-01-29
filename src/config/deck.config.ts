@@ -36,31 +36,31 @@ export const BASE_DECK_CONFIG: DeckEntry[] = [
   // Tratamientos
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 2,
     subtype: TreatmentSubtype.Contagion,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 3,
     subtype: TreatmentSubtype.OrganThief,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 3,
     subtype: TreatmentSubtype.Transplant,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 1,
     subtype: TreatmentSubtype.Gloves,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 1,
     subtype: TreatmentSubtype.MedicalError,
   },

@@ -13,6 +13,7 @@ export enum CardColor {
   Multi = 'multi', // Multicolor (afecta a todos)
   Halloween = 'halloween', // Especial expansión
   Orange = 'orange', // Órgano Mutante
+  Treatment = 'treatment', // Tratamientos
 }
 
 export enum TreatmentSubtype {
