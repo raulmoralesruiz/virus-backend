@@ -100,7 +100,7 @@ describe('playMedicineCard', () => {
     expect(g.players[0].hand.length).toBe(0);
   });
 
-  test('cura un virus en órgano multicolor aunque los colores difieran', () => {
+  test('falla al intentar curar un virus en órgano multicolor si los colores difieren', () => {
     const g = mkGame();
     const organId = 'organ_multi_1';
     g.public.players[1].board.push({
@@ -119,13 +119,16 @@ describe('playMedicineCard', () => {
     const target: PlayCardTarget = { playerId: 'p2', organId };
     const res = playMedicineCard(g, g.players[0], 0, target);
 
-    expect(res.success).toBe(true);
+    expect(res.success).toBe(false);
+    expect(res).toMatchObject({
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+      },
+    });
 
     const organ = g.public.players[1].board.find(o => o.id === organId)!;
-    expect(organ.attached.length).toBe(0);
-    expect(g.discard.find(c => c.id === 'virus_yellow_1')).toBeTruthy();
-    expect(g.discard.find(c => c.id === 'med_red_1')).toBeTruthy();
-    expect(g.players[0].hand.length).toBe(0);
+    expect(organ.attached.length).toBe(1); // Virus keeps attached
+    expect(g.players[0].hand.length).toBe(1); // Card not played
   });
 
   test('hace inmune un órgano con dos medicinas', () => {

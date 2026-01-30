@@ -50,13 +50,14 @@ export const playMedicineCard = (
   // Si hay virus + medicina → neutralizar
   if (isInfected(organ)) {
     // eliminar un virus del mismo color y la medicina jugada
+    // IMPORTANTE: Para quitar un virus, la medicina debe coincidir CON EL VIRUS.
+    // El hecho de que el órgano sea multicolor no permite usar una medicina azul para quitar un virus rojo.
     const virusIdx = organ.attached.findIndex(
       a =>
         a.kind === CardKind.Virus &&
-        (a.color === card.color ||
-          a.color === CardColor.Multi ||
-          card.color === CardColor.Multi ||
-          organ.color === CardColor.Multi)
+        (a.color === card.color || // Medicina Roja - Virus Rojo
+          a.color === CardColor.Multi || // Medicina Roja - Virus Multi
+          card.color === CardColor.Multi) // Medicina Multi - Virus Rojo
     );
 
     if (virusIdx >= 0) {
@@ -71,6 +72,16 @@ export const playMedicineCard = (
       maybeTransferTrickOrTreat(g, ps.player.id, target.playerId);
       return { success: true };
     }
+
+    // Si el órgano está infectado pero NO encontramos un virus combatible con esta medicina,
+    // entonces es un error de COLOR_MISMATCH. No podemos "vacunar" encima de un virus que no matamos.
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: `${withArticle(card)} no coincide con el color del virus en ${withOrganArticle(organ, { capitalize: false })}.`,
+      },
+    };
   }
 
   // VACUNAR → añadir medicina

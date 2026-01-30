@@ -170,7 +170,7 @@ describe('playVirusCard', () => {
     expect(g.players[0].hand.length).toBe(0);
   });
 
-  test('neutraliza una medicina en órgano multicolor aunque los colores difieran', () => {
+  test('falla al intentar neutralizar una medicina en órgano multicolor si los colores difieren', () => {
     const g = mkGame();
 
     const organId = 'organ_multi_1';
@@ -189,13 +189,16 @@ describe('playVirusCard', () => {
 
     const res = playVirusCard(g, g.players[0], 0, { playerId: 'p2', organId });
 
-    expect(res.success).toBe(true);
+    expect(res.success).toBe(false);
+    expect(res).toMatchObject({
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+      },
+    });
 
     const organ = g.public.players[1].board.find(o => o.id === organId)!;
-    expect(organ.attached.length).toBe(0);
-    expect(g.discard.find(c => c.id === 'med_green_1')).toBeTruthy();
-    expect(g.discard.find(c => c.id === 'virus_yellow_1')).toBeTruthy();
-    expect(g.players[0].hand.length).toBe(0);
+    expect(organ.attached.length).toBe(1); // med remains
+    expect(g.players[0].hand.length).toBe(1); // card not played
   });
 
   test('falla en órgano inmune', () => {
