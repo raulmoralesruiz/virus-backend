@@ -56,6 +56,12 @@ export const playBodySwap = (
   game.public.players.forEach((p: PublicPlayerInfo, index: number) => {
     p.board = newStates[index].board;
     p.hasTrickOrTreat = newStates[index].hasTrickOrTreat;
+
+    // Sync private state
+    const ps = game.players.find(x => x.player.id === p.player.id);
+    if (ps) {
+      ps.hasTrickOrTreat = p.hasTrickOrTreat;
+    }
   });
 
   // const directionText = target.direction === 'clockwise' ? 'horario' : 'antihorario';

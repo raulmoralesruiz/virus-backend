@@ -1,7 +1,7 @@
 import { GameState } from '../interfaces/Game.interface.js';
 
 export const getTrickOrTreatOwnerId = (g: GameState): string | null => {
-  const owner = g.players.find(p => p.hasTrickOrTreat);
+  const owner = g.public.players.find(p => p.hasTrickOrTreat);
   return owner?.player.id ?? null;
 };
 
