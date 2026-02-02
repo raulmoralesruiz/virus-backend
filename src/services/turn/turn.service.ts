@@ -1,7 +1,7 @@
 import { GameState } from '../../interfaces/Game.interface.js';
 import { scheduleTurnTimer } from '../turn-timer.service.js';
-import { TURN_DURATION_MS } from '../game.service.js';
-import { Card } from '../../interfaces/Card.interface.js';
+import { TURN_DURATION_MS } from '../../constants/turn.constants.js';
+import { drawCardInternal, HAND_LIMIT } from '../card/draw-card.service.js';
 
 /**
  * Verifica si es el turno de un jugador concreto
@@ -23,6 +23,11 @@ export const endTurnInternal =
     const g = games.get(roomId);
     if (!g) return null;
 
+    // Limpiar acción pendiente si existe (el jugador eligió conservarla)
+    if (g.pendingAction) {
+      delete g.pendingAction;
+    }
+
     // avanzar turno
     g.turnIndex = (g.turnIndex + 1) % g.players.length;
     let nextPlayer = g.players[g.turnIndex];
@@ -31,9 +36,12 @@ export const endTurnInternal =
     if (nextPlayer.skipNextTurn) {
       nextPlayer.skipNextTurn = false;
 
-      // Robar nueva mano (3 cartas, igual que en startGame)
-      const newHand: Card[] = g.deck.splice(0, 3);
-      nextPlayer.hand.push(...newHand);
+      // Roba cartas hasta recomponer mano respetando HAND_LIMIT.
+      const drawCard = drawCardInternal(games);
+      while (nextPlayer.hand.length < HAND_LIMIT) {
+        const result = drawCard(roomId, nextPlayer.player.id);
+        if (!result.success) break;
+      }
 
       // actualizar estado público
       const pub = g.public.players.find(p => p.player.id === nextPlayer.player.id);
@@ -45,9 +53,10 @@ export const endTurnInternal =
 
     const now = Date.now();
     g.turnStartedAt = now;
-    g.turnDeadlineTs = now + TURN_DURATION_MS;
+    const duration = g.turnDurationMs ?? TURN_DURATION_MS;
+    g.turnDeadlineTs = now + duration;
 
-    scheduleTurnTimer(roomId, games, turnTimers);
+    scheduleTurnTimer(roomId, games, turnTimers, endTurnInternal(games, turnTimers));
     return g;
   };
 

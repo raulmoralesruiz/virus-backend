@@ -1,6 +1,7 @@
 import { GAME_ERRORS } from '../../../constants/error.constants.js';
 import { CardKind, CardColor, TreatmentSubtype } from '../../../interfaces/Card.interface.js';
 import { GameState } from '../../../interfaces/Game.interface.js';
+import { setTrickOrTreatOwner } from '../../../utils/trick-or-treat.utils.js';
 import { playMedicalError } from './medical-error.service.js';
 
 const mkGame = (): GameState => {
@@ -26,6 +27,7 @@ const mkGame = (): GameState => {
     turnStartedAt: Date.now(),
     turnDeadlineTs: Date.now() + 60000,
     history: [],
+    lastActionAt: Date.now(),
   };
 };
 
@@ -125,5 +127,71 @@ describe('playMedicalError', () => {
     expect(g.public.players[1].board.some(o => o.color === CardColor.Blue)).toBe(true);
     // P1 debería quedarse vacío
     expect(g.public.players[0].board.length).toBe(0);
+  });
+
+  test('transfiere Truco o Trato del objetivo al jugador activo junto con el cuerpo', () => {
+    const g = mkGame();
+
+    g.public.players[0].board.push({
+      id: 'organ_blue',
+      kind: CardKind.Organ,
+      color: CardColor.Blue,
+      attached: [],
+    });
+    g.public.players[1].board.push({
+      id: 'organ_green',
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [],
+    });
+
+    setTrickOrTreatOwner(g, 'p2');
+
+    g.players[0].hand.push({
+      id: 'med_error_5',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.MedicalError,
+    });
+
+    const res = playMedicalError(g, g.players[0], 0, { playerId: 'p2' });
+    expect(res.success).toBe(true);
+
+    expect(g.public.players[0].hasTrickOrTreat).toBe(true);
+    expect(g.public.players[1].hasTrickOrTreat).toBe(false);
+    expect(g.history[0]).toBe('Truco o Trato pasa a P1');
+  });
+
+  test('transfiere Truco o Trato del jugador activo al objetivo junto con el cuerpo', () => {
+    const g = mkGame();
+
+    g.public.players[0].board.push({
+      id: 'organ_blue',
+      kind: CardKind.Organ,
+      color: CardColor.Blue,
+      attached: [],
+    });
+    g.public.players[1].board.push({
+      id: 'organ_green',
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [],
+    });
+
+    setTrickOrTreatOwner(g, 'p1');
+
+    g.players[0].hand.push({
+      id: 'med_error_6',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.MedicalError,
+    });
+
+    const res = playMedicalError(g, g.players[0], 0, { playerId: 'p2' });
+    expect(res.success).toBe(true);
+
+    expect(g.public.players[0].hasTrickOrTreat).toBe(false);
+    expect(g.public.players[1].hasTrickOrTreat).toBe(true);
+    expect(g.history[0]).toBe('Truco o Trato pasa a P2');
   });
 });

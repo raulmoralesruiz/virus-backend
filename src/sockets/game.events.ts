@@ -13,7 +13,8 @@ import {
   clearGame,
 } from '../services/game.service.js';
 import { logger } from '../utils/logger.js';
-import { getRooms } from '../services/room.service.js';
+import { getRooms, setRoomInProgress } from '../services/room.service.js';
+import { wsEmitter } from '../ws/emitter.js';
 import {
   PlayCardTarget,
   PlayerHandPayload,
@@ -22,41 +23,20 @@ import {
   MedicalErrorTarget,
   GameState,
   OrganOnBoard,
+  AnyPlayTarget,
 } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
-import { Card, CardColor, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+import { Card, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
+import { describeCard, describeOrganLabel } from '../utils/card-label.utils.js';
+import { pushHistoryEntry } from '../utils/history.utils.js';
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
-const HISTORY_LIMIT = 30;
-
-const COLOR_LABELS: Record<CardColor, string> = {
-  [CardColor.Red]: 'Rojo',
-  [CardColor.Green]: 'Verde',
-  [CardColor.Blue]: 'Azul',
-  [CardColor.Yellow]: 'Amarillo',
-  [CardColor.Multi]: 'Multicolor',
-  [CardColor.Halloween]: 'Halloween',
-};
-
-const TREATMENT_LABELS: Partial<Record<TreatmentSubtype, string>> = {
-  [TreatmentSubtype.Transplant]: 'Trasplante',
-  [TreatmentSubtype.OrganThief]: 'Ladrón de Órganos',
-  [TreatmentSubtype.Contagion]: 'Contagio',
-  [TreatmentSubtype.Gloves]: 'Guantes de Látex',
-  [TreatmentSubtype.MedicalError]: 'Error Médico',
-  [TreatmentSubtype.failedExperiment]: 'Experimento Fallido',
-  [TreatmentSubtype.trickOrTreat]: 'Truco o Trato',
-};
-
 const addHistoryEntry = (roomId: string, entry: string | null | undefined) => {
   if (!entry) return;
   const game = getGame(roomId);
   if (!game) return;
-  game.history.unshift(entry);
-  if (game.history.length > HISTORY_LIMIT) {
-    game.history.splice(HISTORY_LIMIT);
-  }
+  pushHistoryEntry(game, entry);
 };
 
 const getPlayerName = (game: GameState | undefined, playerId?: string | null) => {
@@ -79,30 +59,6 @@ const findOrgan = (
   return targetPlayer.board.find(o => o.id === organId) ?? null;
 };
 
-const describeColor = (color?: CardColor) => {
-  if (!color) return '';
-  return COLOR_LABELS[color] ?? color;
-};
-
-const describeCard = (card?: Card | null) => {
-  if (!card) return 'una carta';
-
-  switch (card.kind) {
-    case CardKind.Organ:
-      return `Órgano ${describeColor(card.color)}`;
-    case CardKind.Virus:
-      return `Virus ${describeColor(card.color)}`;
-    case CardKind.Medicine:
-      return `Medicina ${describeColor(card.color)}`;
-    case CardKind.Treatment: {
-      const label = card.subtype ? TREATMENT_LABELS[card.subtype] : null;
-      return label ?? 'un Tratamiento';
-    }
-    default:
-      return 'una carta';
-  }
-};
-
 const isPlayCardTarget = (value: any): value is PlayCardTarget => {
   return (
     value &&
@@ -118,12 +74,12 @@ const isTransplantTarget = (value: any): value is TransplantTarget => {
   );
 };
 
-const isMedicalErrorTarget = (value: any): value is MedicalErrorTarget => {
+const isPlayerOnlyTarget = (value: any): value is MedicalErrorTarget => {
   return (
     value &&
     typeof value === 'object' &&
     typeof value.playerId === 'string' &&
-    !('organId' in value)
+    (!('organId' in value) || !value.organId)
   );
 };
 
@@ -154,19 +110,24 @@ const describeTargetSuffix = (
   if (isTransplantTarget(target)) {
     const nameA = getPlayerName(game, target.a.playerId);
     const nameB = getPlayerName(game, target.b.playerId);
-    return ` entre ${nameA} y ${nameB}`;
+    const organA = describeOrganLabel(findOrgan(game, target.a.playerId, target.a.organId));
+    const organB = describeOrganLabel(findOrgan(game, target.b.playerId, target.b.organId));
+    const detailA = organA ? ` (${organA})` : '';
+    const detailB = organB ? ` (${organB})` : '';
+    return ` entre ${nameA}${detailA} y ${nameB}${detailB}`;
   }
 
   if (isPlayCardTarget(target)) {
     const targetPlayer = getPlayerName(game, target.playerId);
     const organ = findOrgan(game, target.playerId, target.organId);
-    if (organ) {
-      return ` sobre Órgano ${describeColor(organ.color)} de ${targetPlayer}`;
+    const organLabel = describeOrganLabel(organ);
+    if (organLabel) {
+      return ` sobre ${organLabel} de ${targetPlayer}`;
     }
     return ` sobre ${targetPlayer}`;
   }
 
-  if (isMedicalErrorTarget(target)) {
+  if (isPlayerOnlyTarget(target)) {
     const targetPlayer = getPlayerName(game, target.playerId);
     return ` a ${targetPlayer}`;
   }
@@ -233,7 +194,9 @@ const registerGameEvents = (io: Server, socket: Socket) => {
       return;
     }
 
-    startGame(roomId, players);
+    startGame(roomId, players, room.config);
+    setRoomInProgress(roomId, true);
+    wsEmitter.emitRoomsList();
     addHistoryEntry(roomId, 'Comienza la partida');
 
     // Estado público inicial
@@ -243,7 +206,10 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
     // Mano privada: enviamos a cada jugador por su socketId
     for (const pl of players) {
-      if (!pl.socketId) continue; // seguridad
+      if (!pl.socketId) {
+        logger.warn(`[game:start] Player ${pl.id} missing socketId when sending hand`);
+        continue; // seguridad
+      }
       const hand = getPlayerHand(roomId, pl.id) || [];
 
       const payload: PlayerHandPayload = { roomId, playerId: pl.id, hand };
@@ -336,7 +302,7 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
   socket.on(
     GAME_CONSTANTS.GAME_PLAY_CARD,
-    (data: { roomId: string; cardId: string; target?: PlayCardTarget }) => {
+    (data: { roomId: string; cardId: string; target?: AnyPlayTarget }) => {
       const { roomId, cardId, target } = data || {};
       const playerId = socket.data?.playerId;
 
@@ -413,6 +379,8 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
         // 🏆 detectar si hay ganador
         if (g?.winner) {
+          setRoomInProgress(roomId, false);
+          wsEmitter.emitRoomsList();
           clearGame(roomId);
 
           io.to(roomId).emit(GAME_CONSTANTS.GAME_END, {
@@ -466,7 +434,9 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     if (!room) return;
 
     // Reiniciar partida
-    startGame(roomId, room.players);
+    startGame(roomId, room.players, room.config);
+    setRoomInProgress(roomId, true);
+    wsEmitter.emitRoomsList();
     addHistoryEntry(roomId, 'La partida se reinició');
 
     // Emitir nuevo estado público

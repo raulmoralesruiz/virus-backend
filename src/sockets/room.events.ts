@@ -1,17 +1,29 @@
 import { Server, Socket } from 'socket.io';
-import { createRoom, getRooms, joinRoom } from '../services/room.service.js';
+import {
+  createRoom,
+  getPublicRooms,
+  getRoomByKey,
+  getRooms,
+  joinRoom,
+  leaveRoom,
+  updateRoomConfig,
+} from '../services/room.service.js';
 import { ROOM_CONSTANTS } from '../constants/room.constants.js';
 import { logger } from '../utils/logger.js';
 import { wsEmitter } from '../ws/emitter.js';
-import { setPlayerSocketId } from '../services/player.service.js';
+import { clearPlayerSocketId, setPlayerSocketId } from '../services/player.service.js';
+import { GAME_CONSTANTS } from '../constants/game.constants.js';
+import { getPublicState } from '../services/game.service.js';
 
 const registerRoomEvents = (io: Server, socket: Socket) => {
-  socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player }) => {
+  socket.on(ROOM_CONSTANTS.ROOM_NEW, ({ player, visibility }) => {
     logger.info(`${ROOM_CONSTANTS.ROOM_NEW} - Creating a new room...`);
     logger.info(`${ROOM_CONSTANTS.ROOM_NEW} - data player = ${JSON.stringify(player)}`);
+    logger.info(`${ROOM_CONSTANTS.ROOM_NEW} - visibility = ${visibility}`);
 
     // Create a new room
-    const room = createRoom(player);
+    const sanitizedVisibility = visibility === 'private' ? 'private' : 'public';
+    const room = createRoom(player, sanitizedVisibility);
     joinRoom(room.id, player);
 
     socket.data.playerId = player.id;
@@ -25,15 +37,26 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
   socket.on(ROOM_CONSTANTS.ROOM_JOIN, ({ roomId, player }) => {
     logger.info(`${ROOM_CONSTANTS.ROOM_JOIN} - Player ${player.name} joining ${roomId}`);
 
+    const roomSnapshot = getRoomByKey(roomId);
+    if (!roomSnapshot) {
+      socket.emit('error', { message: 'Sala no encontrada' });
+      return;
+    }
+
+    if (roomSnapshot.inProgress) {
+      socket.emit('error', { message: 'La partida ya está en curso' });
+      return;
+    }
+
     const room = joinRoom(roomId, player);
     if (!room) {
-      socket.emit('error', { message: 'Sala no encontrada' });
+      socket.emit('error', { message: 'No fue posible unir a la sala' });
       return;
     }
 
     socket.data.playerId = player.id;
     setPlayerSocketId(player.id, socket.id);
-    socket.join(roomId);
+    socket.join(room.id);
 
     // Lista de salas para todos
     wsEmitter.emitRoomsList();
@@ -42,8 +65,84 @@ const registerRoomEvents = (io: Server, socket: Socket) => {
 
   socket.on(ROOM_CONSTANTS.ROOM_GET_ALL, () => {
     logger.info(`${ROOM_CONSTANTS.ROOM_GET_ALL} - Fetching all rooms...`);
-    socket.emit(ROOM_CONSTANTS.ROOMS_LIST, getRooms());
+    socket.emit(ROOM_CONSTANTS.ROOMS_LIST, getPublicRooms());
     logger.info(`${ROOM_CONSTANTS.ROOMS_LIST} - Sent list of rooms to client`);
+  });
+
+  socket.on(ROOM_CONSTANTS.ROOM_LEAVE, ({ roomId, playerId }) => {
+    logger.info(`${ROOM_CONSTANTS.ROOM_LEAVE} - Player ${playerId} leaving ${roomId}`);
+
+    if (!roomId || !playerId) {
+      logger.warn(`${ROOM_CONSTANTS.ROOM_LEAVE} - roomId or playerId missing`);
+      return;
+    }
+
+    const result = leaveRoom(roomId, playerId);
+
+    clearPlayerSocketId(socket.id);
+    socket.leave(roomId);
+
+    wsEmitter.emitRoomsList();
+
+    if (result.forcedEnd) {
+      const { room: forcedRoom, lastPlayerSocketId } = result.forcedEnd;
+
+      if (lastPlayerSocketId) {
+        io.to(lastPlayerSocketId).emit(ROOM_CONSTANTS.ROOM_JOINED, forcedRoom);
+        io.to(lastPlayerSocketId).emit(GAME_CONSTANTS.GAME_STATE, null);
+        io.to(lastPlayerSocketId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+
+        const survivorSocket = io.sockets.sockets.get(lastPlayerSocketId);
+        survivorSocket?.leave(roomId);
+      } else {
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, null);
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+      }
+
+      return;
+    }
+
+    if (result.room) {
+      wsEmitter.emitRoomUpdated(result.room.id);
+    }
+
+    if (result.gamePlayerRemoved) {
+      const publicState = getPublicState(roomId);
+      if (publicState) {
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, publicState);
+      } else {
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, null);
+        io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+      }
+    }
+  });
+
+  socket.on(ROOM_CONSTANTS.ROOM_CONFIG_UPDATE, ({ roomId, config }) => {
+    logger.info(`${ROOM_CONSTANTS.ROOM_CONFIG_UPDATE} - roomId=${roomId}`);
+
+    if (!roomId || !config) return;
+
+    const room = getRooms().find(r => r.id === roomId);
+    if (!room) return;
+
+    const requesterId = socket.data?.playerId;
+    if (!requesterId || room.hostId !== requesterId) {
+      logger.warn(
+        `${ROOM_CONSTANTS.ROOM_CONFIG_UPDATE} - Player ${requesterId} is not host of ${roomId}`
+      );
+      return;
+    }
+
+    if (room.inProgress) {
+      logger.warn(
+        `${ROOM_CONSTANTS.ROOM_CONFIG_UPDATE} - Room ${roomId} is in progress, skipping update`
+      );
+      return;
+    }
+
+    updateRoomConfig(roomId, config);
+    wsEmitter.emitRoomUpdated(roomId);
+    wsEmitter.emitRoomsList();
   });
 
   // Additional room-related events can be registered here

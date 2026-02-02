@@ -1,5 +1,7 @@
 import { GAME_ERRORS } from '../../../constants/error.constants.js';
 import { GameState, PlayerState, PlayCardResult } from '../../../interfaces/Game.interface.js';
+import { pushHistoryEntry } from '../../../utils/history.utils.js';
+import { setTrickOrTreatOwner } from '../../../utils/trick-or-treat.utils.js';
 
 export const playMedicalError = (
   g: GameState,
@@ -15,10 +17,19 @@ export const playMedicalError = (
   const myPub = g.public.players.find(pp => pp.player.id === ps.player.id);
   if (!targetPub || !myPub) return { success: false, error: GAME_ERRORS.INVALID_TARGET };
 
+  const myHasTrickOrTreat = Boolean(myPub.hasTrickOrTreat);
+  const targetHasTrickOrTreat = Boolean(targetPub.hasTrickOrTreat);
+
   // Swap completo de cuerpo
   const temp = [...myPub.board];
   myPub.board = [...targetPub.board];
   targetPub.board = temp;
+
+  if (myHasTrickOrTreat !== targetHasTrickOrTreat) {
+    const newOwner = myHasTrickOrTreat ? targetPub : myPub;
+    setTrickOrTreatOwner(g, newOwner.player.id);
+    pushHistoryEntry(g, `Truco o Trato pasa a ${newOwner.player.name}`);
+  }
 
   ps.hand.splice(cardIdx, 1);
   g.discard.push(card);

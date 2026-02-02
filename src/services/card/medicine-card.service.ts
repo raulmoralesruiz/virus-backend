@@ -7,7 +7,9 @@ import {
 } from '../../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../../constants/error.constants.js';
 import { canReceiveMedicine, isImmune, isInfected } from '../../utils/organ-utils.js';
-import { logger } from '../../utils/logger.js';
+import { withArticle, withOrganArticle } from '../../utils/card-label.utils.js';
+import { getTrickOrTreatOwnerId, setTrickOrTreatOwner } from '../../utils/trick-or-treat.utils.js';
+import { pushHistoryEntry } from '../../utils/history.utils.js';
 
 export const playMedicineCard = (
   g: GameState,
@@ -26,20 +28,36 @@ export const playMedicineCard = (
   if (!organ) return { success: false, error: GAME_ERRORS.NO_ORGAN };
 
   if (isImmune(organ)) {
-    return { success: false, error: GAME_ERRORS.ALREADY_IMMUNE };
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.ALREADY_IMMUNE.code,
+        message: `${withOrganArticle(organ)} ya es inmune; no puedes añadir más medicinas.`,
+      },
+    };
   }
 
   if (!canReceiveMedicine(organ, card)) {
-    return { success: false, error: GAME_ERRORS.COLOR_MISMATCH };
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: `${withArticle(card)} no se puede aplicar sobre ${withOrganArticle(organ, { capitalize: false })}.`,
+      },
+    };
   }
 
   // Si hay virus + medicina → neutralizar
   if (isInfected(organ)) {
     // eliminar un virus del mismo color y la medicina jugada
+    // IMPORTANTE: Para quitar un virus, la medicina debe coincidir CON EL VIRUS.
+    // El hecho de que el órgano sea multicolor no permite usar una medicina azul para quitar un virus rojo.
     const virusIdx = organ.attached.findIndex(
       a =>
         a.kind === CardKind.Virus &&
-        (a.color === card.color || a.color === CardColor.Multi || card.color === CardColor.Multi)
+        (a.color === card.color || // Medicina Roja - Virus Rojo
+          a.color === CardColor.Multi || // Medicina Roja - Virus Multi
+          card.color === CardColor.Multi) // Medicina Multi - Virus Rojo
     );
 
     if (virusIdx >= 0) {
@@ -51,8 +69,19 @@ export const playMedicineCard = (
       const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
       if (pubSelf) pubSelf.handCount = ps.hand.length;
 
+      maybeTransferTrickOrTreat(g, ps.player.id, target.playerId);
       return { success: true };
     }
+
+    // Si el órgano está infectado pero NO encontramos un virus combatible con esta medicina,
+    // entonces es un error de COLOR_MISMATCH. No podemos "vacunar" encima de un virus que no matamos.
+    return {
+      success: false,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: `${withArticle(card)} no coincide con el color del virus en ${withOrganArticle(organ, { capitalize: false })}.`,
+      },
+    };
   }
 
   // VACUNAR → añadir medicina
@@ -62,5 +91,19 @@ export const playMedicineCard = (
   const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
   if (pubSelf) pubSelf.handCount = ps.hand.length;
 
+  maybeTransferTrickOrTreat(g, ps.player.id, target.playerId);
   return { success: true };
+};
+
+const maybeTransferTrickOrTreat = (g: GameState, fromPlayerId: string, toPlayerId: string) => {
+  if (!toPlayerId || !fromPlayerId || fromPlayerId === toPlayerId) return;
+
+  const currentOwner = getTrickOrTreatOwnerId(g);
+  if (!currentOwner || currentOwner !== fromPlayerId) return;
+
+  const targetPublic = g.public.players.find(pp => pp.player.id === toPlayerId);
+  if (!targetPublic) return;
+
+  setTrickOrTreatOwner(g, toPlayerId);
+  pushHistoryEntry(g, `Truco o Trato pasa a ${targetPublic.player.name}`);
 };

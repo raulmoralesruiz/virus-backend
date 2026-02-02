@@ -5,12 +5,14 @@ export interface PlayerState {
   player: Player;
   hand: Card[];
   skipNextTurn?: boolean;
+  hasTrickOrTreat?: boolean;
 }
 
 export interface PublicPlayerInfo {
   player: Player;
   board: OrganOnBoard[]; // cartas visibles en mesa
   handCount: number; // solo el número de cartas en mano, no cuáles son
+  hasTrickOrTreat?: boolean;
 }
 
 export interface GameState {
@@ -25,14 +27,18 @@ export interface GameState {
   turnIndex: number; // índice del jugador activo en `players`
   turnStartedAt: number; // epoch ms
   turnDeadlineTs: number; // epoch ms (turnStartedAt + TURN_DURATION_MS)
+  turnDurationMs?: number;
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
   history: string[]; // historial textual de acciones
+  pendingAction?: ApparitionDecision;
+  lastActionAt: number; // timestamp for inactivity check (last play/discard/draw)
 }
 
 export interface PublicGameState {
   roomId: string;
   startedAt: string;
   discardCount: number;
+  topDiscard?: Card; // última carta descartada visible
   deckCount: number;
   players: PublicPlayerInfo[];
   turnIndex: number;
@@ -40,6 +46,7 @@ export interface PublicGameState {
   remainingSeconds: number;
   winner?: PublicPlayerInfo;
   history: string[];
+  pendingAction?: ApparitionDecision;
 }
 
 export interface PlayerHandPayload {
@@ -95,3 +102,25 @@ export interface ContagionTarget {
 export interface MedicalErrorTarget {
   playerId: string;
 }
+
+export interface FailedExperimentTarget extends PlayCardTarget {
+  action: 'medicine' | 'virus';
+}
+
+export interface BodySwapTarget {
+  direction: 'clockwise' | 'counter-clockwise';
+}
+
+export interface ApparitionDecision {
+  type: 'ApparitionDecision';
+  playerId: string;
+  cardId: string;
+}
+
+export type AnyPlayTarget =
+  | PlayCardTarget
+  | TransplantTarget
+  | MedicalErrorTarget
+  | ContagionTarget[]
+  | FailedExperimentTarget
+  | BodySwapTarget;

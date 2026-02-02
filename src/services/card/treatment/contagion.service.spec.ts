@@ -29,6 +29,7 @@ const mkGame = (): GameState => {
     turnStartedAt: Date.now(),
     turnDeadlineTs: Date.now() + 60000,
     history: [],
+    lastActionAt: Date.now(),
   };
 };
 
@@ -65,7 +66,13 @@ describe('playContagion', () => {
 
     const res = playContagion(g, g.players[0], 0, targets);
     expect(res.success).toBe(false);
-    expect(res).toMatchObject({ error: GAME_ERRORS.COLOR_MISMATCH });
+    expect(res).toMatchObject({
+      success: false,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: 'El Virus Estómago no puede contagiar el Órgano Corazón.',
+      },
+    });
   });
 
   test('falla si no hay objetivos', () => {
@@ -168,7 +175,13 @@ describe('playContagion', () => {
 
     const res = playContagion(g, g.players[0], 0, targets);
     expect(res.success).toBe(false);
-    expect(res).toMatchObject({ error: GAME_ERRORS.IMMUNE_ORGAN });
+    expect(res).toMatchObject({
+      success: false,
+      error: {
+        code: GAME_ERRORS.IMMUNE_ORGAN.code,
+        message: 'El Órgano Hueso es inmune; no puedes contagiarlo.',
+      },
+    });
   });
 
   test('puede contagiar virus a varios jugadores diferentes', () => {

@@ -26,6 +26,7 @@ const mkGame = (): GameState => {
     turnStartedAt: Date.now(),
     turnDeadlineTs: Date.now() + 60000,
     history: [],
+    lastActionAt: Date.now(),
   };
 };
 
@@ -99,6 +100,37 @@ describe('playMedicineCard', () => {
     expect(g.players[0].hand.length).toBe(0);
   });
 
+  test('falla al intentar curar un virus en órgano multicolor si los colores difieren', () => {
+    const g = mkGame();
+    const organId = 'organ_multi_1';
+    g.public.players[1].board.push({
+      id: organId,
+      kind: CardKind.Organ,
+      color: CardColor.Multi,
+      attached: [{ id: 'virus_yellow_1', kind: CardKind.Virus, color: CardColor.Yellow }],
+    });
+
+    g.players[0].hand.push({
+      id: 'med_red_1',
+      kind: CardKind.Medicine,
+      color: CardColor.Red,
+    });
+
+    const target: PlayCardTarget = { playerId: 'p2', organId };
+    const res = playMedicineCard(g, g.players[0], 0, target);
+
+    expect(res.success).toBe(false);
+    expect(res).toMatchObject({
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+      },
+    });
+
+    const organ = g.public.players[1].board.find(o => o.id === organId)!;
+    expect(organ.attached.length).toBe(1); // Virus keeps attached
+    expect(g.players[0].hand.length).toBe(1); // Card not played
+  });
+
   test('hace inmune un órgano con dos medicinas', () => {
     const g = mkGame();
     const organId = 'organ_yellow_1';
@@ -147,7 +179,10 @@ describe('playMedicineCard', () => {
     expect(res.success).toBe(false);
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.COLOR_MISMATCH,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: 'La Medicina Estómago no se puede aplicar sobre el Órgano Cerebro.',
+      },
     });
 
     expect(g.players[0].hand.length).toBe(1);
@@ -178,7 +213,10 @@ describe('playMedicineCard', () => {
     expect(res.success).toBe(false);
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.ALREADY_IMMUNE,
+      error: {
+        code: GAME_ERRORS.ALREADY_IMMUNE.code,
+        message: 'El Órgano Estómago ya es inmune; no puedes añadir más medicinas.',
+      },
     });
 
     expect(g.players[0].hand.length).toBe(1);

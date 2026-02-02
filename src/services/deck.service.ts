@@ -43,8 +43,9 @@ export const buildDeckFromConfig = (config: DeckEntry[]): Card[] => {
 /**
  * Construye el mazo final mezclando base y expansiones activadas.
  */
-export const buildDeck = (): Card[] => {
+export const buildDeck = (options?: { includeHalloweenExpansion?: boolean }): Card[] => {
   const base = buildDeckFromConfig(BASE_DECK_CONFIG);
-  const halloween = buildDeckFromConfig(EXPANSION_HALLOWEEN_DECK_CONFIG);
+  const includeHalloween = options?.includeHalloweenExpansion ?? true;
+  const halloween = includeHalloween ? buildDeckFromConfig(EXPANSION_HALLOWEEN_DECK_CONFIG) : [];
   return shuffle([...base, ...halloween]);
 };

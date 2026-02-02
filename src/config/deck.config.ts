@@ -36,31 +36,31 @@ export const BASE_DECK_CONFIG: DeckEntry[] = [
   // Tratamientos
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 2,
     subtype: TreatmentSubtype.Contagion,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 3,
     subtype: TreatmentSubtype.OrganThief,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 3,
     subtype: TreatmentSubtype.Transplant,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 1,
     subtype: TreatmentSubtype.Gloves,
   },
   {
     kind: CardKind.Treatment,
-    color: CardColor.Multi,
+    color: CardColor.Treatment,
     count: 1,
     subtype: TreatmentSubtype.MedicalError,
   },
@@ -70,16 +70,63 @@ export const BASE_DECK_CONFIG: DeckEntry[] = [
  * Expansión Halloween.
  */
 export const EXPANSION_HALLOWEEN_DECK_CONFIG: DeckEntry[] = [
-  // {
-  //   kind: CardKind.Treatment,
-  //   color: CardColor.Halloween,
-  //   count: 1,
-  //   subtype: TreatmentSubtype.trickOrTreat,
-  // },
-  // {
-  //   kind: CardKind.Treatment,
-  //   color: CardColor.Halloween,
-  //   count: 2,
-  //   subtype: TreatmentSubtype.failedExperiment,
-  // },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 1,
+    subtype: TreatmentSubtype.trickOrTreat,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 2,
+    subtype: TreatmentSubtype.failedExperiment,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 1,
+    subtype: TreatmentSubtype.ColorThiefRed,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 1,
+    subtype: TreatmentSubtype.ColorThiefGreen,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 1,
+    subtype: TreatmentSubtype.ColorThiefBlue,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 1,
+    subtype: TreatmentSubtype.ColorThiefYellow,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 1,
+    subtype: TreatmentSubtype.BodySwap,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 1,
+    subtype: TreatmentSubtype.Apparition,
+  },
+  {
+    kind: CardKind.Treatment,
+    color: CardColor.Halloween,
+    count: 2,
+    subtype: TreatmentSubtype.AlienTransplant,
+  },
+  {
+    kind: CardKind.Organ,
+    color: CardColor.Orange,
+    count: 1,
+  },
 ];

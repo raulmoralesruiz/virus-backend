@@ -7,6 +7,7 @@ import {
   ContagionTarget,
 } from '../../../interfaces/Game.interface.js';
 import { isImmune, isInfected } from '../../../utils/organ-utils.js';
+import { withArticle, withOrganArticle } from '../../../utils/card-label.utils.js';
 
 export const playContagion = (
   g: GameState,
@@ -37,7 +38,13 @@ export const playContagion = (
 
     // debe ser órgano libre (ni inmune, ni infectado, ni vacunado)
     if (isImmune(organTarget)) {
-      return { success: false, error: GAME_ERRORS.IMMUNE_ORGAN };
+      return {
+        success: false,
+        error: {
+          code: GAME_ERRORS.IMMUNE_ORGAN.code,
+          message: `${withOrganArticle(organTarget)} es inmune; no puedes contagiarlo.`,
+        },
+      };
     }
     if (isInfected(organTarget) || organTarget.attached.some(a => a.kind === CardKind.Medicine)) {
       return { success: false, error: GAME_ERRORS.INVALID_TARGET };
@@ -50,7 +57,13 @@ export const playContagion = (
       virus.color !== CardColor.Multi &&
       organTarget.color !== CardColor.Multi
     ) {
-      return { success: false, error: GAME_ERRORS.COLOR_MISMATCH };
+      return {
+        success: false,
+        error: {
+          code: GAME_ERRORS.COLOR_MISMATCH.code,
+          message: `${withArticle(virus)} no puede contagiar ${withOrganArticle(organTarget, { capitalize: false })}.`,
+        },
+      };
     }
 
     // mover virus

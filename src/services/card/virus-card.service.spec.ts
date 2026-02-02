@@ -26,6 +26,7 @@ const mkGame = (): GameState => {
     turnStartedAt: Date.now(),
     turnDeadlineTs: Date.now() + 60000,
     history: [],
+    lastActionAt: Date.now(),
   };
 };
 
@@ -87,7 +88,10 @@ describe('playVirusCard', () => {
     // Comprobar que devuelve el error correcto
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.COLOR_MISMATCH,
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+        message: 'El Virus Cerebro no puede infectar el Órgano Estómago.',
+      },
     });
 
     // La carta sigue en mano porque no se jugó
@@ -166,6 +170,37 @@ describe('playVirusCard', () => {
     expect(g.players[0].hand.length).toBe(0);
   });
 
+  test('falla al intentar neutralizar una medicina en órgano multicolor si los colores difieren', () => {
+    const g = mkGame();
+
+    const organId = 'organ_multi_1';
+    g.public.players[1].board.push({
+      id: organId,
+      kind: CardKind.Organ,
+      color: CardColor.Multi,
+      attached: [{ id: 'med_green_1', kind: CardKind.Medicine, color: CardColor.Green }],
+    });
+
+    g.players[0].hand.push({
+      id: 'virus_yellow_1',
+      kind: CardKind.Virus,
+      color: CardColor.Yellow,
+    });
+
+    const res = playVirusCard(g, g.players[0], 0, { playerId: 'p2', organId });
+
+    expect(res.success).toBe(false);
+    expect(res).toMatchObject({
+      error: {
+        code: GAME_ERRORS.COLOR_MISMATCH.code,
+      },
+    });
+
+    const organ = g.public.players[1].board.find(o => o.id === organId)!;
+    expect(organ.attached.length).toBe(1); // med remains
+    expect(g.players[0].hand.length).toBe(1); // card not played
+  });
+
   test('falla en órgano inmune', () => {
     const g = mkGame();
     const organId = 'organ_yellow_1';
@@ -190,7 +225,10 @@ describe('playVirusCard', () => {
     // Comprobar que devuelve el error correcto
     expect(res).toMatchObject({
       success: false,
-      error: GAME_ERRORS.IMMUNE_ORGAN,
+      error: {
+        code: GAME_ERRORS.IMMUNE_ORGAN.code,
+        message: 'El Órgano Hueso es inmune; no puedes infectarlo.',
+      },
     });
 
     // La carta sigue en mano porque no se jugó

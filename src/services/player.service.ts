@@ -52,19 +52,31 @@ export const removePlayer = (id: string): void => {
 };
 
 export const setPlayerSocketId = (playerId: string, socketId: string) => {
-  const p = getPlayerById(playerId);
-  if (p) {
-    p.socketId = socketId;
+  let player = getPlayerById(playerId);
 
-    // sincronizar en rooms
-    const room = getRooms().find(r => r.players.some(pl => pl.id === playerId));
-    if (room) {
-      const pl = room.players.find(pl => pl.id === playerId);
-      if (pl) pl.socketId = socketId;
+  if (!player) {
+    // intentar recuperarlo desde alguna sala
+    const roomWithPlayer = getRooms().find(r => r.players.some(pl => pl.id === playerId));
+    const roomPlayer = roomWithPlayer?.players.find(pl => pl.id === playerId);
+    if (roomPlayer) {
+      player = roomPlayer;
+      players.push(roomPlayer);
+    } else {
+      player = { id: playerId, name: `Jugador`, socketId };
+      players.push(player);
     }
   }
 
-  return p ?? null;
+  player.socketId = socketId;
+  logger.info(`[player.service] set socket ${socketId} for player ${playerId}`);
+
+  const room = getRooms().find(r => r.players.some(pl => pl.id === playerId));
+  if (room) {
+    const pl = room.players.find(pl => pl.id === playerId);
+    if (pl) pl.socketId = socketId;
+  }
+
+  return player;
 };
 
 export const clearPlayerSocketId = (socketId: string) => {

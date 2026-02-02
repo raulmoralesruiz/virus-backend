@@ -11,8 +11,12 @@ export const HAND_LIMIT = 3;
  */
 const maybeRecycleDiscard = (g: GameState) => {
   if (g.deck.length === 0 && g.discard.length > 0) {
+    // Mantener la última carta (top) visible en el descarte
+    const top = g.discard.pop();
+    // Barajar el resto
     g.deck = shuffle(g.discard);
-    g.discard = [];
+    // Restaurar el top en el descarte o dejarlo vacío si solo había 1
+    g.discard = top ? [top] : [];
   }
 };
 

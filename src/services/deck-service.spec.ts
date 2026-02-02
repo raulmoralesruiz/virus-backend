@@ -86,5 +86,19 @@ describe('deck.service', () => {
       expect(deck1.map(c => c.id)).not.toEqual(deck2.map(c => c.id));
       expect(deck1).toHaveLength(deck2.length);
     });
+
+    test('permite construir solo el mazo base si se desactiva la expansión', () => {
+      const base = buildDeckFromConfig(BASE_DECK_CONFIG);
+      const halloween = buildDeckFromConfig(EXPANSION_HALLOWEEN_DECK_CONFIG);
+
+      const deck = buildDeck({ includeHalloweenExpansion: false });
+
+      expect(deck).toHaveLength(base.length);
+
+      const halloweenIds = new Set(halloween.map(c => c.id));
+      for (const card of deck) {
+        expect(halloweenIds.has(card.id)).toBe(false);
+      }
+    });
   });
 });

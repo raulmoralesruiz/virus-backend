@@ -3,14 +3,15 @@ import { GameState } from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { getIO } from '../ws/io.js';
 import { discardCardsInternal } from './card/discard-card.service.js';
-import { getPlayerHand, TURN_DURATION_MS, getPublicState } from './game.service.js';
 import { getRooms } from './room.service.js';
+import { mapToPublicState } from './query/query.service.js';
 
 // --- Timer interno por sala ---
 export const scheduleTurnTimer = (
   roomId: string,
   games: Map<string, GameState>,
-  turnTimers: Map<string, NodeJS.Timeout>
+  turnTimers: Map<string, NodeJS.Timeout>,
+  endTurn?: (roomId: string) => void
 ) => {
   const old = turnTimers.get(roomId);
   if (old) {
@@ -27,18 +28,11 @@ export const scheduleTurnTimer = (
     const msLeft = Math.max(0, game.turnDeadlineTs - Date.now());
     const remainingSeconds = Math.max(0, Math.ceil(msLeft / 1000));
 
-    io.to(roomId).volatile.emit(GAME_CONSTANTS.GAME_STATE, {
-      roomId: game.roomId,
-      startedAt: game.startedAt,
-      discardCount: game.discard.length,
-      deckCount: game.deck.length,
-      players: game.public.players,
-      turnIndex: game.turnIndex,
-      turnDeadlineTs: game.turnDeadlineTs,
-      remainingSeconds,
-      winner: (game as any).winner ?? null,
-      history: game.history,
-    });
+    const publicState = mapToPublicState(game);
+    // Sobrescribir remainingSeconds con el cálculo actual
+    publicState.remainingSeconds = remainingSeconds;
+
+    io.to(roomId).volatile.emit(GAME_CONSTANTS.GAME_STATE, publicState);
   };
 
   // emitir inmediatamente para sincronizar clientes justo ahora
@@ -61,13 +55,20 @@ export const scheduleTurnTimer = (
       );
 
       // 1) Forzar descarte aleatorio de la mano del jugador activo (si tiene cartas)
+      // EXCEPCIÓN: Si hay una decisión pendiente (Apparition), no descartamos nada.
+      // Simplemente queremos que pase el turno y se quede con la carta.
       const currentPlayer = game.players[game.turnIndex];
-      if (currentPlayer && currentPlayer.hand.length > 0) {
+
+      if (game.pendingAction) {
+        // Limpiamos la acción pendiente y pasamos turno
+        delete game.pendingAction;
+        if (endTurn) endTurn(roomId);
+      } else if (currentPlayer && currentPlayer.hand.length > 0) {
         const randIdx = Math.floor(Math.random() * currentPlayer.hand.length);
         const randomCardId = currentPlayer.hand[randIdx].id;
 
         // 👉 usar servicio centralizado
-        const discard = discardCardsInternal(games);
+        const discard = discardCardsInternal(games, endTurn);
         discard(roomId, currentPlayer.player.id, [randomCardId]);
 
         // 2) Emitir la mano privada actualizada SOLO a ese jugador
@@ -75,7 +76,8 @@ export const scheduleTurnTimer = (
         if (room) {
           const pl = room.players.find(p => p.id === currentPlayer.player.id);
           if (pl?.socketId) {
-            const hand = getPlayerHand(roomId, pl.id) || [];
+            const privateState = game.players.find(p => p.player.id === pl.id);
+            const hand = privateState ? [...privateState.hand] : [];
             const payload = { roomId, playerId: pl.id, hand };
             io.to(pl.socketId).emit(GAME_CONSTANTS.GAME_HAND, payload);
           }

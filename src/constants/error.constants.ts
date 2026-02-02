@@ -74,7 +74,7 @@ export const GAME_ERRORS = {
   },
   COLOR_MISMATCH: {
     code: 'COLOR_MISMATCH',
-    message: 'El color de la carta no coincide en color con el órgano',
+    message: 'La carta no coincide con el color del órgano',
   },
   UNSUPPORTED_CARD: {
     code: 'UNSUPPORTED_CARD',
@@ -83,6 +83,10 @@ export const GAME_ERRORS = {
   UNSUPPORTED_TREATMENT: {
     code: 'UNSUPPORTED_TREATMENT',
     message: 'Tipo de tratamiento no soportado aún',
+  },
+  EMPTY_DISCARD: {
+    code: 'EMPTY_DISCARD',
+    message: 'El mazo de descartes está vacío',
   },
   SERVER_ERROR: {
     code: 'SERVER_ERROR',
@@ -103,5 +107,21 @@ export const GAME_ERRORS = {
   NO_VIRUS: {
     code: 'NO_VIRUS',
     message: 'Virus no encontrado',
+  },
+  ORGAN_NOT_INFECTED_OR_VACCINATED: {
+    code: 'ORGAN_NOT_INFECTED_OR_VACCINATED',
+    message: 'El órgano debe estar infectado o vacunado',
+  },
+  ORGAN_NOT_VACCINATED: {
+    code: 'ORGAN_NOT_VACCINATED',
+    message: 'El órgano no está vacunado',
+  },
+  INVALID_ACTION: {
+    code: 'INVALID_ACTION',
+    message: 'Acción no válida',
+  },
+  ORGAN_NOT_INFECTED: {
+    code: 'ORGAN_NOT_INFECTED',
+    message: 'El órgano no está infectado',
   },
 } as const;
