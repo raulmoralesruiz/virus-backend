@@ -52,7 +52,7 @@ El servidor utiliza las siguientes configuraciones (actualmente hardcoded o por 
 
 La documentación completa del proyecto, incluyendo arquitectura detallada y eventos de socket, se encuentra centralizada en el repositorio de documentación principal:
 
-👉 [**Virus Documentation**](../virus-docs) (Enlace relativo o URL al repo de docs)
+👉 [**Virus Documentation**](https://virusdocs.raulmorales.eu) (Enlace relativo o URL al repo de docs)
 
 ## 🤝 Guía para Contribuir
 
