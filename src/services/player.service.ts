@@ -27,6 +27,15 @@ export const createPlayer = (name: string): Player => {
   return player;
 };
 
+export const updatePlayerName = (id: string, name: string): Player | null => {
+  const player = getPlayerById(id);
+  if (player) {
+    player.name = name;
+    logger.info(`player.service - Updated player ${id} name to: ${name}`);
+  }
+  return player;
+};
+
 /**
  * Retrieves all players.
  * @returns An array of all player objects.
