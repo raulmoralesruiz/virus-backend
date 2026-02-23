@@ -62,20 +62,11 @@ const refillHandWithNewCards = (g: GameState, player: PlayerState, lostHand: Car
   };
 
   const pullCardFromDeck = (): Card | null => {
-    while (true) {
-      if (g.deck.length === 0) {
-        const recycled = recycleDiscard();
-        if (!recycled) return null;
-      }
-
-      if (g.deck.length === 0) return null;
-      const card = g.deck.shift()!;
-      if (lostIds.has(card.id)) {
-        reserved.push(card);
-        continue;
-      }
-      return card;
+    if (g.deck.length === 0) {
+      const recycled = recycleDiscard();
+      if (!recycled) return null;
     }
+    return g.deck.shift()!;
   };
 
   while (player.hand.length < HAND_LIMIT) {

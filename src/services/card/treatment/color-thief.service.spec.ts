@@ -164,4 +164,54 @@ describe('playColorThief', () => {
       error: GAME_ERRORS.DUPLICATE_ORGAN,
     });
   });
+
+  test('falla si no hay objetivos', () => {
+    const g = mkGame();
+    g.players[0].hand.push({
+      id: 'color_thief_green',
+      kind: CardKind.Treatment,
+      color: CardColor.Halloween,
+      subtype: TreatmentSubtype.ColorThiefGreen,
+    });
+    const res = playColorThief(g, g.players[0], 0, undefined as any, CardColor.Green);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_TARGET });
+  });
+
+  test('falla si el player objetivo falta', () => {
+    const g = mkGame();
+    g.players[0].hand.push({
+      id: 'color_thief_green',
+      kind: CardKind.Treatment,
+      color: CardColor.Halloween,
+      subtype: TreatmentSubtype.ColorThiefGreen,
+    });
+    const res = playColorThief(g, g.players[0], 0, { playerId: 'p-invalid', organId: '1' }, CardColor.Green);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
+
+  test('falla si el public player propio falta', () => {
+    const g = mkGame();
+    g.players[0].hand.push({
+      id: 'color_thief_green',
+      kind: CardKind.Treatment,
+      color: CardColor.Halloween,
+      subtype: TreatmentSubtype.ColorThiefGreen,
+    });
+    // Eliminamos a P1 de public
+    g.public.players = [g.public.players[1]];
+    const res = playColorThief(g, g.players[0], 0, { playerId: 'p2', organId: '1' }, CardColor.Green);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
+
+  test('falla si el órgano objetivo no existe en el tablero del objetivo', () => {
+    const g = mkGame();
+    g.players[0].hand.push({
+      id: 'color_thief_green',
+      kind: CardKind.Treatment,
+      color: CardColor.Halloween,
+      subtype: TreatmentSubtype.ColorThiefGreen,
+    });
+    const res = playColorThief(g, g.players[0], 0, { playerId: 'p2', organId: 'organ_invalid' }, CardColor.Green);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_ORGAN });
+  });
 });

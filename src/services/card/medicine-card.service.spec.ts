@@ -377,4 +377,33 @@ describe('playMedicineCard', () => {
     const res = playMedicineCard(g, g.players[0], 0, { playerId: 'p2', organId: 'nonexistent' });
     expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_ORGAN });
   });
+
+  test('transfiere Truco o Trato si el jugador lo tiene', () => {
+    const g = mkGame();
+    const organId = 'organ_green_1';
+    g.public.players[1].board.push({
+      id: organId,
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [],
+    });
+
+    g.players[0].hand.push({
+      id: 'med_green_1',
+      kind: CardKind.Medicine,
+      color: CardColor.Green,
+    });
+
+    // P1 tiene Truco o Trato
+    g.players[0].hasTrickOrTreat = true;
+    g.public.players[0].hasTrickOrTreat = true;
+
+    const target: PlayCardTarget = { playerId: 'p2', organId };
+    const res = playMedicineCard(g, g.players[0], 0, target);
+
+    expect(res.success).toBe(true);
+    expect(g.public.players[1].hasTrickOrTreat).toBe(true);
+    expect(g.history.length).toBeGreaterThan(0);
+    expect(g.history[g.history.length - 1]).toContain('Truco o Trato pasa a P2');
+  });
 });
