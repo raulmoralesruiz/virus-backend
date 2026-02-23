@@ -390,4 +390,56 @@ describe('playVirusCard', () => {
     const res = playVirusCard(g, g.players[0], 0, { playerId: 'p2', organId: 'nonexistent' });
     expect(res).toMatchObject({ success: false, error: GAME_ERRORS.NO_ORGAN });
   });
+
+  test('neutraliza una medicina sin fallar si player público no se encuentra', () => {
+    const g = mkGame();
+
+    const organId = 'organ_red_1';
+    g.public.players[1].board.push({
+      id: organId,
+      kind: CardKind.Organ,
+      color: CardColor.Red,
+      attached: [{ id: 'med_red_1', kind: CardKind.Medicine, color: CardColor.Red }],
+    });
+
+    g.players[0].hand.push({
+      id: 'virus_red_1',
+      kind: CardKind.Virus,
+      color: CardColor.Red,
+    });
+
+    // Eliminar a P1 de los public players
+    g.public.players = [g.public.players[1]];
+
+    const target: PlayCardTarget = { playerId: 'p2', organId };
+    const res = playVirusCard(g, g.players[0], 0, target);
+
+    expect(res.success).toBe(true);
+  });
+
+  test('infecta un órgano libre sin fallar si player público no se encuentra', () => {
+    const g = mkGame();
+
+    const organId = 'organ_red_1';
+    g.public.players[1].board.push({
+      id: organId,
+      kind: CardKind.Organ,
+      color: CardColor.Red,
+      attached: [],
+    });
+
+    g.players[0].hand.push({
+      id: 'virus_red_1',
+      kind: CardKind.Virus,
+      color: CardColor.Red,
+    });
+
+    // Eliminar a P1 de los public players
+    g.public.players = [g.public.players[1]];
+
+    const target: PlayCardTarget = { playerId: 'p2', organId };
+    const res = playVirusCard(g, g.players[0], 0, target);
+
+    expect(res.success).toBe(true);
+  });
 });

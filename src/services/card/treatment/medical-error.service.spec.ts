@@ -194,4 +194,28 @@ describe('playMedicalError', () => {
     expect(g.public.players[1].hasTrickOrTreat).toBe(true);
     expect(g.history[0]).toBe('Truco o Trato pasa a P2');
   });
+
+  test('no falla si el public player propio no existe', () => {
+    const g = mkGame();
+
+    g.public.players[1].board.push({
+      id: 'organ_green',
+      kind: CardKind.Organ,
+      color: CardColor.Green,
+      attached: [],
+    });
+
+    g.players[0].hand.push({
+      id: 'med_error_6',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.MedicalError,
+    });
+
+    // Eliminar propio
+    g.public.players = [g.public.players[1]];
+
+    const res = playMedicalError(g, g.players[0], 0, { playerId: 'p2' });
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
 });

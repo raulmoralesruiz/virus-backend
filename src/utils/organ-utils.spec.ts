@@ -4,6 +4,7 @@ import {
   isImmune,
   canReceiveVirus,
   canReceiveMedicine,
+  isOrgan,
 } from './organ-utils.js';
 import { CardKind, CardColor, Card } from '../interfaces/Card.interface.js';
 import { OrganOnBoard } from '../interfaces/Game.interface.js';
@@ -16,6 +17,19 @@ const mkOrgan = (color: CardColor, attached: Card[] = []): OrganOnBoard => ({
 });
 
 describe('organ-utils', () => {
+  describe('isOrgan', () => {
+    test('true si el card kind es Organ', () => {
+      const card = { kind: CardKind.Organ };
+      expect(isOrgan(card)).toBe(true);
+    });
+
+    test('false si es falsy o no es Organ', () => {
+      expect(isOrgan({})).toBe(false);
+      expect(isOrgan(null)).toBe(false);
+      expect(isOrgan({ kind: CardKind.Virus })).toBe(false);
+    });
+  });
+
   describe('isInfected', () => {
     test('true si tiene al menos un virus', () => {
       const organ = mkOrgan(CardColor.Green, [

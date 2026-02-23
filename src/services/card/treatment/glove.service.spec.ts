@@ -139,4 +139,91 @@ describe('playGlove', () => {
     expect(g.players[1].hand.length).toBe(3);
     expect(g.players[1].hand.every(card => card.id !== 'p2_card1')).toBe(true);
   });
+
+  test('recicla descarte al rellenar mano y usa reservadas si falta mazo', () => {
+    const g = mkGame();
+
+    g.players[0].hand.push({
+      id: 'glove_1', kind: CardKind.Treatment, color: CardColor.Multi, subtype: TreatmentSubtype.Gloves,
+    });
+
+    g.players[1].hand.push({ id: 'p2_card1', kind: CardKind.Organ, color: CardColor.Red });
+    g.players[1].hand.push({ id: 'p2_card2', kind: CardKind.Organ, color: CardColor.Green });
+    g.players[1].hand.push({ id: 'p2_card3', kind: CardKind.Organ, color: CardColor.Blue });
+    
+    // Eliminamos P3 para simplificar
+    g.players.pop();
+    g.public.players.pop();
+
+    g.deck = [
+      { id: 'deck_1', kind: CardKind.Organ, color: CardColor.Red }, // 1 en mazo
+    ];
+
+    g.discard = [
+      { id: 'discard_old', kind: CardKind.Organ, color: CardColor.Blue }, // 1 en descarte antiguo
+    ];
+
+    // Al perder las 3 cartas, el descarte temporal será: discard_old, p2_card1, p2_card2, p2_card3
+    const res = playGlove(g, g.players[0], 0);
+    expect(res.success).toBe(true);
+
+    // P2 debió recibir 3 cartas: deck_1, discard_old, y p2_card1 (de las reservadas)
+    expect(g.players[1].hand.length).toBe(3);
+    const p2h = g.players[1].hand.map(c => c.id);
+    expect(p2h).toContain('deck_1');
+    expect(p2h).toContain('discard_old');
+    expect(p2h).toContain('p2_card1'); // Tuvo que coger una reservada
+
+    // Reservadas restantes pasaron al descarte (junto con el guante)
+    const disc = g.discard.map(c => c.id);
+    expect(disc).toContain('p2_card2');
+    expect(disc).toContain('p2_card3');
+    expect(disc).toContain('glove_1');
+  });
+
+  test('falla al reciclar si solo hay descartes reservados, devuelve lo perdido', () => {
+    const g = mkGame();
+
+    g.players[0].hand.push({
+      id: 'glove_1', kind: CardKind.Treatment, color: CardColor.Multi, subtype: TreatmentSubtype.Gloves,
+    });
+
+    g.players[1].hand.push({ id: 'p2_card1', kind: CardKind.Organ, color: CardColor.Red });
+    g.players[1].hand.push({ id: 'p2_card2', kind: CardKind.Organ, color: CardColor.Green });
+    g.players[1].hand.push({ id: 'p2_card3', kind: CardKind.Organ, color: CardColor.Blue });
+    
+    g.players.pop(); g.public.players.pop(); // Remove P3
+
+    // Mazo y descarte vacío inicialmente
+    g.deck = [];
+    g.discard = [];
+
+    const res = playGlove(g, g.players[0], 0);
+    expect(res.success).toBe(true);
+
+    // Como no hay nada para robar más que sus propias cartas perdidas, se le devuelven
+    expect(g.players[1].hand.length).toBe(3);
+    const p2h = g.players[1].hand.map(c => c.id);
+    expect(p2h).toEqual(['p2_card1', 'p2_card2', 'p2_card3']);
+  });
+
+  test('no falla si falta el estado publico del jugador', () => {
+    const g = mkGame();
+
+    g.players[0].hand.push({
+      id: 'glove_1', kind: CardKind.Treatment, color: CardColor.Multi, subtype: TreatmentSubtype.Gloves,
+    });
+
+    g.players[1].hand.push({ id: 'p2_card1', kind: CardKind.Organ, color: CardColor.Red });
+    
+    g.players.pop(); g.public.players.pop(); // Remove P3
+
+    g.deck = [{ id: 'deck_1', kind: CardKind.Organ, color: CardColor.Red }];
+
+    // Eliminar public state
+    g.public.players = [g.public.players[0]];
+
+    const res = playGlove(g, g.players[0], 0);
+    expect(res.success).toBe(true);
+  });
 });

@@ -112,4 +112,58 @@ describe('playOrganCard', () => {
     expect(g.players[0].hand.length).toBe(1);
     expect(g.public.players[0].handCount).toBe(1);
   });
+
+  test('falla si juega órgano mutante sin objetivo', () => {
+    const g = mkGame();
+    g.players[0].hand.push({ id: 'org_mutant', kind: CardKind.Organ, color: CardColor.Orange });
+    const res = playOrganCard(g, g.players[0], 0);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
+
+  test('falla si juega órgano mutante con objetivo de otro jugador', () => {
+    const g = mkGame();
+    g.players[0].hand.push({ id: 'org_mutant', kind: CardKind.Organ, color: CardColor.Orange });
+    const target = { playerId: 'p2', organId: 'any' };
+    const res = playOrganCard(g, g.players[0], 0, target);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
+
+  test('falla si juega órgano mutante sobre órgano inexistente en su tablero', () => {
+    const g = mkGame();
+    g.players[0].hand.push({ id: 'org_mutant', kind: CardKind.Organ, color: CardColor.Orange });
+    const target = { playerId: 'p1', organId: 'missing' };
+    const res = playOrganCard(g, g.players[0], 0, target);
+    expect(res).toMatchObject({ success: false, error: GAME_ERRORS.INVALID_TARGET });
+  });
+
+  test('reemplaza órgano existente con órgano mutante descartando el anterior y sus cartas', () => {
+    const g = mkGame();
+    g.players[0].hand.push({ id: 'org_mutant', kind: CardKind.Organ, color: CardColor.Orange });
+    
+    // Configurar órgano a reemplazar
+    const oldOrgan: OrganOnBoard = {
+      id: 'org_blue',
+      kind: CardKind.Organ,
+      color: CardColor.Blue,
+      attached: [{ id: 'virus_blue', kind: CardKind.Virus, color: CardColor.Blue }]
+    };
+    g.public.players[0].board.push(oldOrgan);
+
+    const target = { playerId: 'p1', organId: 'org_blue' };
+    const res = playOrganCard(g, g.players[0], 0, target);
+    
+    expect(res.success).toBe(true);
+    expect(g.players[0].hand.length).toBe(0);
+    
+    // Verifica que el órgano antiguo fue eliminado
+    expect(g.public.players[0].board.findIndex(o => o.id === 'org_blue')).toBe(-1);
+    
+    // Verifica que el mutante fue añadido
+    expect(g.public.players[0].board.findIndex(o => o.id === 'org_mutant')).toBeGreaterThan(-1);
+    
+    // Verifica descartes
+    expect(g.discard.length).toBe(2);
+    expect(g.discard.map(c => c.id)).toContain('org_blue');
+    expect(g.discard.map(c => c.id)).toContain('virus_blue');
+  });
 });

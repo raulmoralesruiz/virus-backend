@@ -401,7 +401,9 @@ describe('playTransplant', () => {
     };
 
     g.public.players[0].board.push(organA);
+    g.public.players[0].board.push({ id: 'org_p1_other', kind: CardKind.Organ, color: CardColor.Yellow, attached: [] });
     g.public.players[1].board.push(organB);
+    g.public.players[1].board.push({ id: 'org_p2_other', kind: CardKind.Organ, color: CardColor.Green, attached: [] });
 
     g.players[0].hand.push({
       id: 'treatment_transplant',
