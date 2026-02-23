@@ -23,4 +23,15 @@ export const wsEmitter = {
     getIO().to(roomId).emit(GAME_CONSTANTS.GAME_STARTED, publicState);
     logger.info(`${GAME_CONSTANTS.GAME_STARTED} - Emitted game public state to room ${roomId}`);
   },
+
+  emitRoomClosed: (roomId: string) => {
+    const io = getIO();
+    io.to(roomId).emit(ROOM_CONSTANTS.ROOM_CLOSED);
+    io.socketsLeave(roomId);
+    logger.info(`${ROOM_CONSTANTS.ROOM_CLOSED} - Emitted room closed and forced clients to leave room ${roomId}`);
+  },
+
+  emitRoomTimer: (roomId: string, remainingSeconds: number) => {
+    getIO().to(roomId).emit(ROOM_CONSTANTS.ROOM_TIMER, { remainingSeconds });
+  },
 };

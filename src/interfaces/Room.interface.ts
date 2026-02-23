@@ -16,4 +16,5 @@ export interface Room {
   inProgress: boolean;
   visibility: 'public' | 'private';
   config: RoomConfig;
+  createdAt: number;
 }
