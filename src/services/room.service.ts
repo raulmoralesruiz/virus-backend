@@ -6,8 +6,12 @@ import { Player } from '../interfaces/Player.interface.js';
 import { GameState } from '../interfaces/Game.interface.js';
 import { getPlayerById } from './player.service.js';
 import { clearGame, removePlayerFromGame } from './game.service.js';
+import { wsEmitter } from '../ws/emitter.js';
 
 const rooms: Room[] = [];
+const roomTimers = new Map<string, NodeJS.Timeout>();
+const ROOM_TIMEOUT_SECONDS = 10 * 60;
+
 const DEFAULT_ROOM_CONFIG: RoomConfig = {
   mode: 'halloween',
   timerSeconds: 60,
@@ -67,10 +71,25 @@ export const createRoom = (player: Player, visibility: RoomVisibility = 'public'
     inProgress: false,
     visibility,
     config: createDefaultRoomConfig(),
+    createdAt: Date.now(),
   };
   logger.info(
     `room.service - New room created with ID: ${roomId}, Name: ${roomName} and visibility: ${visibility}`
   );
+
+  let remainingSeconds = ROOM_TIMEOUT_SECONDS;
+  const timerId = setInterval(() => {
+    remainingSeconds--;
+    wsEmitter.emitRoomTimer(roomId, remainingSeconds);
+
+    if (remainingSeconds <= 0) {
+      logger.info(`room.service - Room ${roomId} has been closed due to inactivity.`);
+      removeRoom(roomId);
+      wsEmitter.emitRoomClosed(roomId);
+      wsEmitter.emitRoomsList();
+    }
+  }, 1000);
+  roomTimers.set(roomId, timerId);
 
   rooms.push(room);
   return room;
@@ -135,6 +154,12 @@ export const getRoomByKey = (roomKey: string): Room | null => {
 };
 
 export const removeRoom = (roomId: string) => {
+  const timerId = roomTimers.get(roomId);
+  if (timerId) {
+    clearInterval(timerId);
+    roomTimers.delete(roomId);
+  }
+
   const idx = rooms.findIndex(r => r.id === roomId);
   if (idx !== -1) {
     rooms.splice(idx, 1);
