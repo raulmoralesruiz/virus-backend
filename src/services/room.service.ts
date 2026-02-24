@@ -10,7 +10,7 @@ import { wsEmitter } from '../ws/emitter.js';
 
 const rooms: Room[] = [];
 const roomTimers = new Map<string, NodeJS.Timeout>();
-const ROOM_TIMEOUT_SECONDS = 1 * 60;
+const ROOM_TIMEOUT_SECONDS = 10 * 60;
 
 const DEFAULT_ROOM_CONFIG: RoomConfig = {
   mode: 'halloween',
