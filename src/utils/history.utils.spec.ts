@@ -21,13 +21,13 @@ describe('pushHistoryEntry', () => {
     pushHistoryEntry(mockGame, 'first');
     pushHistoryEntry(mockGame, 'second');
     
-    expect(mockGame.history).toEqual(['second', 'first']);
+    expect(mockGame.history).toEqual([{ plainText: 'second' }, { plainText: 'first' }]);
   });
 
   test(`limita el historial a ${HISTORY_LIMIT} elementos`, () => {
     // Llenar justo hasta el límite
     for(let i = 0; i < HISTORY_LIMIT; i++) {
-        mockGame.history.push(`old`);
+        mockGame.history.push({ plainText: `old` });
     }
 
     expect(mockGame.history).toHaveLength(HISTORY_LIMIT);
@@ -36,6 +36,6 @@ describe('pushHistoryEntry', () => {
     pushHistoryEntry(mockGame, 'new-entry');
     
     expect(mockGame.history).toHaveLength(HISTORY_LIMIT);
-    expect(mockGame.history[0]).toBe('new-entry');
+    expect(mockGame.history[0]).toEqual({ plainText: 'new-entry' });
   });
 });

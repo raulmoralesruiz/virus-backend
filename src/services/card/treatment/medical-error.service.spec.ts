@@ -159,7 +159,7 @@ describe('playMedicalError', () => {
 
     expect(g.public.players[0].hasTrickOrTreat).toBe(true);
     expect(g.public.players[1].hasTrickOrTreat).toBe(false);
-    expect(g.history[0]).toBe('Truco o Trato pasa a P1');
+    expect(g.history[0]).toEqual({ plainText: 'Truco o Trato pasa a P1' });
   });
 
   test('transfiere Truco o Trato del jugador activo al objetivo junto con el cuerpo', () => {
@@ -192,7 +192,7 @@ describe('playMedicalError', () => {
 
     expect(g.public.players[0].hasTrickOrTreat).toBe(false);
     expect(g.public.players[1].hasTrickOrTreat).toBe(true);
-    expect(g.history[0]).toBe('Truco o Trato pasa a P2');
+    expect(g.history[0]).toEqual({ plainText: 'Truco o Trato pasa a P2' });
   });
 
   test('no falla si el public player propio no existe', () => {

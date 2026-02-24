@@ -404,6 +404,6 @@ describe('playMedicineCard', () => {
     expect(res.success).toBe(true);
     expect(g.public.players[1].hasTrickOrTreat).toBe(true);
     expect(g.history.length).toBeGreaterThan(0);
-    expect(g.history[g.history.length - 1]).toContain('Truco o Trato pasa a P2');
+    expect(g.history[g.history.length - 1].plainText).toContain('Truco o Trato pasa a P2');
   });
 });
