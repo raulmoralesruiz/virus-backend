@@ -19,11 +19,7 @@ export const playApparition = (
   const card = ps.hand[cardIdx];
 
   // 2. Extraer la última carta de descartes
-  const stolenCard = g.discard.pop();
-  if (!stolenCard) {
-    // Teóricamente cubierto por check anterior, pero por tipado
-    return { success: false, error: GAME_ERRORS.EMPTY_DISCARD };
-  }
+  const stolenCard = g.discard.pop()!;
 
   // 3. Intercambiar: la carta 'Aparición' va al descarte
   ps.hand.splice(cardIdx, 1); // quitamos aparición de la mano

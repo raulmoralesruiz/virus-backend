@@ -34,8 +34,7 @@ export const playMedicalError = (
   ps.hand.splice(cardIdx, 1);
   g.discard.push(card);
 
-  const pubSelf = g.public.players.find(pp => pp.player.id === ps.player.id);
-  if (pubSelf) pubSelf.handCount = ps.hand.length;
+  myPub.handCount = ps.hand.length;
 
   return { success: true };
 };

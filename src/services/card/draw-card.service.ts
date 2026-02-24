@@ -16,7 +16,7 @@ const maybeRecycleDiscard = (g: GameState) => {
     // Barajar el resto
     g.deck = shuffle(g.discard);
     // Restaurar el top en el descarte o dejarlo vacío si solo había 1
-    g.discard = top ? [top] : [];
+    g.discard = [top!];
   }
 };
 

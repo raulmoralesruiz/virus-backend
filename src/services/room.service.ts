@@ -10,7 +10,7 @@ import { wsEmitter } from '../ws/emitter.js';
 
 const rooms: Room[] = [];
 const roomTimers = new Map<string, NodeJS.Timeout>();
-const ROOM_TIMEOUT_SECONDS = 10 * 60;
+const ROOM_TIMEOUT_SECONDS = 1 * 60;
 
 const DEFAULT_ROOM_CONFIG: RoomConfig = {
   mode: 'halloween',
@@ -57,6 +57,34 @@ export const generateRoomName = (roomId: string) => {
 
 type RoomVisibility = Room['visibility'];
 
+export const startRoomTimer = (roomId: string) => {
+  clearRoomTimer(roomId);
+
+  let remainingSeconds = ROOM_TIMEOUT_SECONDS;
+  wsEmitter.emitRoomTimer(roomId, remainingSeconds);
+
+  const timerId = setInterval(() => {
+    remainingSeconds--;
+    wsEmitter.emitRoomTimer(roomId, remainingSeconds);
+
+    if (remainingSeconds <= 0) {
+      logger.info(`room.service - Room ${roomId} has been closed due to inactivity.`);
+      removeRoom(roomId);
+      wsEmitter.emitRoomClosed(roomId);
+      wsEmitter.emitRoomsList();
+    }
+  }, 1000);
+  roomTimers.set(roomId, timerId);
+};
+
+export const clearRoomTimer = (roomId: string) => {
+  const timerId = roomTimers.get(roomId);
+  if (timerId) {
+    clearInterval(timerId);
+    roomTimers.delete(roomId);
+  }
+};
+
 export const createRoom = (player: Player, visibility: RoomVisibility = 'public') => {
   logger.info('room.service - Creating a new room...');
 
@@ -77,19 +105,7 @@ export const createRoom = (player: Player, visibility: RoomVisibility = 'public'
     `room.service - New room created with ID: ${roomId}, Name: ${roomName} and visibility: ${visibility}`
   );
 
-  let remainingSeconds = ROOM_TIMEOUT_SECONDS;
-  const timerId = setInterval(() => {
-    remainingSeconds--;
-    wsEmitter.emitRoomTimer(roomId, remainingSeconds);
-
-    if (remainingSeconds <= 0) {
-      logger.info(`room.service - Room ${roomId} has been closed due to inactivity.`);
-      removeRoom(roomId);
-      wsEmitter.emitRoomClosed(roomId);
-      wsEmitter.emitRoomsList();
-    }
-  }, 1000);
-  roomTimers.set(roomId, timerId);
+  startRoomTimer(roomId);
 
   rooms.push(room);
   return room;
@@ -129,6 +145,13 @@ export const setRoomInProgress = (roomId: string, inProgress: boolean) => {
   const room = rooms.find(r => r.id === roomId);
   if (!room) return null;
   room.inProgress = inProgress;
+  
+  if (inProgress) {
+    clearRoomTimer(roomId);
+  } else {
+    startRoomTimer(roomId);
+  }
+
   return room;
 };
 
@@ -154,11 +177,7 @@ export const getRoomByKey = (roomKey: string): Room | null => {
 };
 
 export const removeRoom = (roomId: string) => {
-  const timerId = roomTimers.get(roomId);
-  if (timerId) {
-    clearInterval(timerId);
-    roomTimers.delete(roomId);
-  }
+  clearRoomTimer(roomId);
 
   const idx = rooms.findIndex(r => r.id === roomId);
   if (idx !== -1) {

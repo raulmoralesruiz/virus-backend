@@ -121,4 +121,17 @@ describe('drawCardInternal', () => {
     expect(g.players[0].hand).toContain(card);
     expect(g.public.players[0].handCount).toBe(1);
   });
+
+  test('roba carta sin fallar si player público no se encuentra', () => {
+    const g = mkGame();
+    const card = { id: 'c1', kind: CardKind.Organ, color: CardColor.Green };
+    g.deck.push(card);
+    // Eliminar public player para cubrir el branch de if (pub)
+    g.public.players = [];
+    const games = new Map([[g.roomId, g]]);
+    const draw = drawCardInternal(games);
+
+    const res = draw('r1', 'p1');
+    expect(res.success).toBe(true);
+  });
 });

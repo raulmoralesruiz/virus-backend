@@ -101,8 +101,7 @@ const maybeTransferTrickOrTreat = (g: GameState, fromPlayerId: string, toPlayerI
   const currentOwner = getTrickOrTreatOwnerId(g);
   if (!currentOwner || currentOwner !== fromPlayerId) return;
 
-  const targetPublic = g.public.players.find(pp => pp.player.id === toPlayerId);
-  if (!targetPublic) return;
+  const targetPublic = g.public.players.find(pp => pp.player.id === toPlayerId)!;
 
   setTrickOrTreatOwner(g, toPlayerId);
   pushHistoryEntry(g, `Truco o Trato pasa a ${targetPublic.player.name}`);

@@ -47,7 +47,7 @@ export const describeCard = (card?: Card | null): string => {
 
   switch (card.kind) {
     case CardKind.Organ:
-      return describeOrganLabel(card) ?? 'un Órgano';
+      return describeOrganLabel(card)!;
     case CardKind.Virus:
       return `${CARD_KIND_LABELS[CardKind.Virus]} ${describeColor(card.color)}`;
     case CardKind.Medicine:
