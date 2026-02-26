@@ -55,7 +55,7 @@ describe('playBodySwap', () => {
     expect(res.success).toBe(true);
     expect(g.players[0].hand.length).toBe(0);
     expect(g.discard.length).toBe(1);
-    expect(g.history[g.history.length - 1]).toContain('está solo');
+    expect(g.history[g.history.length - 1].plainText).toContain('está solo');
   });
 
   test('intercambia cuerpos en sentido antihorario', () => {

@@ -24,6 +24,7 @@ import {
   GameState,
   OrganOnBoard,
   AnyPlayTarget,
+  HistoryEntry,
 } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
 import { Card, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
@@ -32,7 +33,7 @@ import { pushHistoryEntry } from '../utils/history.utils.js';
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
-const addHistoryEntry = (roomId: string, entry: string | null | undefined) => {
+const addHistoryEntry = (roomId: string, entry: HistoryEntry | string | null | undefined) => {
   if (!entry) return;
   const game = getGame(roomId);
   if (!game) return;
@@ -164,13 +165,18 @@ const buildPlayCardHistoryEntry = (
   playerId: string,
   card: Card | null,
   target: any
-) => {
+): HistoryEntry => {
   const playerName = getPlayerName(game, playerId);
   const cardLabel = describeCard(card);
   const verb = card?.kind === CardKind.Treatment ? 'usó' : 'jugó';
   const suffix = describeTargetSuffix(game, card, target);
-  const entry = `${playerName} ${verb} ${cardLabel}${suffix}`.trim();
-  return entry;
+  return {
+    player: playerName,
+    action: verb,
+    cardName: cardLabel,
+    cardColor: card && 'color' in card ? card.color : undefined,
+    target: suffix || ''
+  };
 };
 
 const registerGameEvents = (io: Server, socket: Socket) => {
@@ -269,7 +275,11 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
     const gameAfterDraw = getGame(roomId);
     const drawerName = getPlayerName(gameAfterDraw, playerId);
-    addHistoryEntry(roomId, `${drawerName} robó una carta`);
+    addHistoryEntry(roomId, {
+      player: drawerName,
+      action: 'robó',
+      target: ' una carta'
+    });
 
     // mano privada al jugador
     const hand = getPlayerHand(roomId, playerId) || [];
@@ -417,7 +427,11 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     if (quantity > 0) {
       const playerName = getPlayerName(gameAfterDiscard, playerId);
       const suffix = quantity === 1 ? 'carta' : 'cartas';
-      addHistoryEntry(roomId, `${playerName} descartó ${quantity} ${suffix}`);
+      addHistoryEntry(roomId, {
+        player: playerName,
+        action: 'descartó',
+        target: ` ${quantity} ${suffix}`
+      });
     }
 
     // Estado público actualizado para todos
