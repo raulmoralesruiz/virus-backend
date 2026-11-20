@@ -40,6 +40,7 @@ export interface GameState {
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
   history: HistoryEntry[]; // historial detallado de acciones
   pendingAction?: ApparitionDecision;
+  pauseStartedAt?: number; // epoch ms: cuándo comenzó la pausa del timer por pendingAction
   lastActionAt: number; // timestamp for inactivity check (last play/discard/draw)
 }
 
@@ -56,6 +57,7 @@ export interface PublicGameState {
   winner?: PublicPlayerInfo;
   history: HistoryEntry[];
   pendingAction?: ApparitionDecision;
+  timerPaused: boolean; // true mientras hay una decisión pendiente (el timer no cuenta)
 }
 
 export interface PlayerHandPayload {

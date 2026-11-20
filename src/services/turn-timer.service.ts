@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS } from '../constants/game.constants.js';
+import { TIMER_PAUSE_MAX_MS } from '../constants/turn.constants.js';
 import { GameState } from '../interfaces/Game.interface.js';
 import { logger } from '../utils/logger.js';
 import { getIO } from '../ws/io.js';
@@ -47,6 +48,37 @@ export const scheduleTurnTimer = (
       return;
     }
 
+    // ⏸️ Pausa del timer mientras hay una decisión pendiente (p. ej. Aparición):
+    // el deadline se compensa con cada tick para que el tiempo no pase, hasta que
+    // el jugador resuelva (juega la carta o conserva) o se alcance el tope de pausa.
+    if (game.pendingAction) {
+      if (game.pauseStartedAt === undefined) {
+        game.pauseStartedAt = Date.now();
+      }
+
+      const pausedMs = Date.now() - game.pauseStartedAt;
+
+      if (pausedMs >= TIMER_PAUSE_MAX_MS) {
+        // Tope de pausa alcanzado: auto-resolución al comportamiento seguro
+        // (Aparición → conservar la carta y pasar el turno).
+        logger.info(
+          `[turn-timer] pausa máx. (${TIMER_PAUSE_MAX_MS}ms) alcanzada room=${roomId} → auto-resolución (conservar)`
+        );
+        delete game.pendingAction;
+        game.pauseStartedAt = undefined;
+        if (endTurn) endTurn(roomId);
+        emitState(game);
+        return;
+      }
+
+      // Compensar el tick: el deadline no avanza mientras hay decisión pendiente
+      game.turnDeadlineTs += 1000;
+      emitState(game);
+      return;
+    }
+
+    game.pauseStartedAt = undefined;
+
     const msLeft = game.turnDeadlineTs - Date.now();
 
     if (msLeft <= 0) {
@@ -55,15 +87,11 @@ export const scheduleTurnTimer = (
       );
 
       // 1) Forzar descarte aleatorio de la mano del jugador activo (si tiene cartas)
-      // EXCEPCIÓN: Si hay una decisión pendiente (Apparition), no descartamos nada.
-      // Simplemente queremos que pase el turno y se quede con la carta.
+      // (Si hubiera decisión pendiente, la rama de pausa anterior ya la habría
+      // resuelto: aquí no es posible llegar con pendingAction activo.)
       const currentPlayer = game.players[game.turnIndex];
 
-      if (game.pendingAction) {
-        // Limpiamos la acción pendiente y pasamos turno
-        delete game.pendingAction;
-        if (endTurn) endTurn(roomId);
-      } else if (currentPlayer && currentPlayer.hand.length > 0) {
+      if (currentPlayer && currentPlayer.hand.length > 0) {
         const randIdx = Math.floor(Math.random() * currentPlayer.hand.length);
         const randomCardId = currentPlayer.hand[randIdx].id;
 

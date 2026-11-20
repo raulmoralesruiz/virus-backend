@@ -242,6 +242,7 @@ export const playCardInternal =
     if (res.success && g.pendingAction?.type === 'ApparitionDecision') {
       // Si la jugada fue exitosa y era la carta pendiente, limpiamos el estado
       delete g.pendingAction;
+      g.pauseStartedAt = undefined;
     }
 
     return res;

@@ -26,6 +26,7 @@ export const endTurnInternal =
     // Limpiar acción pendiente si existe (el jugador eligió conservarla)
     if (g.pendingAction) {
       delete g.pendingAction;
+      g.pauseStartedAt = undefined;
     }
 
     // avanzar turno
