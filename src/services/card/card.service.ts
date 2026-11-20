@@ -239,8 +239,10 @@ export const playCardInternal =
       endTurn(roomId);
     }
 
-    if (res.success && g.pendingAction?.type === 'ApparitionDecision') {
-      // Si la jugada fue exitosa y era la carta pendiente, limpiamos el estado
+    if (res.success && g.pendingAction && g.pendingAction.playerId === playerId) {
+      // Si la jugada fue exitosa, limpiamos cualquier decisión/selección pendiente
+      // del jugador (AparitionDecision o TargetSelection). Jugar una carta resuelve
+      // la decisión pendiente; la carta permanece en mano si se canceló la selección.
       delete g.pendingAction;
       g.pauseStartedAt = undefined;
     }

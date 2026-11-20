@@ -17,4 +17,7 @@ export const GAME_CONSTANTS = {
   ROOM_RESET: 'room:reset',
 
   GAME_PLAY_CARD: 'game:play-card',
+
+  GAME_SELECTION_START: 'game:selection-start', // cliente → server: comienza selección de objetivo (pausa el timer)
+  GAME_SELECTION_CANCEL: 'game:selection-cancel', // cliente → server: cancela selección de objetivo (reanuda el timer)
 } as const;

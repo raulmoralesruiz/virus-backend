@@ -406,6 +406,76 @@ const registerGameEvents = (io: Server, socket: Socket) => {
     }
   );
 
+  // ⏸️ Inicio de selección de objetivo (Trasplante, Contagio, Intercambio de cuerpo, …):
+  // se marca una TargetSelection pendiente para pausar el timer de turno mientras el
+  // jugador elige. Al confirmar la jugada se limpia en card.service (endTurn) y al
+  // cancelar, el cliente emite GAME_SELECTION_CANCEL.
+  socket.on(
+    GAME_CONSTANTS.GAME_SELECTION_START,
+    ({ roomId, cardId }: { roomId: string; cardId: string }) => {
+      const playerId = socket.data?.playerId;
+      if (!playerId) {
+        socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_PLAYER);
+        return;
+      }
+
+      const room = getRooms().find(r => r.id === roomId);
+      if (!room) {
+        socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_ROOM);
+        return;
+      }
+
+      if (!room.players.some(p => p.id === playerId)) {
+        socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NOT_IN_ROOM);
+        return;
+      }
+
+      if (!isPlayersTurn(roomId, playerId)) {
+        socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NOT_YOUR_TURN);
+        return;
+      }
+
+      const g = getGame(roomId);
+      if (!g) {
+        socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_GAME);
+        return;
+      }
+
+      const inHand =
+        g.players.find(p => p.player.id === playerId)?.hand.some(c => c.id === cardId) ??
+        false;
+      if (!inHand) {
+        socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_CARD);
+        return;
+      }
+
+      g.pendingAction = { type: 'TargetSelection', playerId, cardId };
+      logger.info(
+        `[${GAME_CONSTANTS.GAME_SELECTION_START}] room=${roomId} player=${playerId} card=${cardId}`
+      );
+      io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
+    }
+  );
+
+  // ▶️ Cancelación de selección de objetivo: se limpia la TargetSelection pendiente
+  // (si la hay para este jugador) y el timer del turno reanuda su cuenta atrás.
+  socket.on(GAME_CONSTANTS.GAME_SELECTION_CANCEL, ({ roomId }: { roomId: string }) => {
+    const playerId = socket.data?.playerId;
+    if (!playerId) return;
+
+    const g = getGame(roomId);
+    if (!g) return;
+
+    if (g.pendingAction && g.pendingAction.playerId === playerId) {
+      delete g.pendingAction;
+      g.pauseStartedAt = undefined;
+      logger.info(
+        `[${GAME_CONSTANTS.GAME_SELECTION_CANCEL}] room=${roomId} player=${playerId}`
+      );
+      io.to(roomId).emit(GAME_CONSTANTS.GAME_STATE, getPublicState(roomId));
+    }
+  });
+
   socket.on(GAME_CONSTANTS.GAME_DISCARD, ({ roomId, cardIds }) => {
     const playerId = socket.data?.playerId;
     // const pid = socket.data?.playerId as string | undefined;;

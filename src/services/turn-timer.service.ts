@@ -59,10 +59,12 @@ export const scheduleTurnTimer = (
       const pausedMs = Date.now() - game.pauseStartedAt;
 
       if (pausedMs >= TIMER_PAUSE_MAX_MS) {
-        // Tope de pausa alcanzado: auto-resolución al comportamiento seguro
-        // (Aparición → conservar la carta y pasar el turno).
+        // Tope de pausa alcanzado: auto-resolución al comportamiento seguro:
+        // - Aparición → conservar la carta robada y pasar el turno.
+        // - Selección de objetivo → cancelar la selección y pasar el turno.
+        // En ambos casos la carta queda en mano y el turno avanza.
         logger.info(
-          `[turn-timer] pausa máx. (${TIMER_PAUSE_MAX_MS}ms) alcanzada room=${roomId} → auto-resolución (conservar)`
+          `[turn-timer] pausa máx. (${TIMER_PAUSE_MAX_MS}ms) alcanzada room=${roomId} → auto-resolución (cancelar decisión + endTurn)`
         );
         delete game.pendingAction;
         game.pauseStartedAt = undefined;

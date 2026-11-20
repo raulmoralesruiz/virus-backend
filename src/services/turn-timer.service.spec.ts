@@ -113,6 +113,48 @@ describe('scheduleTurnTimer', () => {
     expect(lastEmittedState().timerPaused).toBe(false);
   });
 
+  test('pausa el timer con TargetSelection: el deadline se compensa cada tick', () => {
+    const game = createGame({
+      turnDeadlineTs: NOW + 5_000,
+      pendingAction: { type: 'TargetSelection', playerId: 'p1', cardId: 'c1' },
+    });
+    const games = new Map([[game.roomId, game]]);
+    const turnTimers = new Map<string, NodeJS.Timeout>();
+
+    scheduleTurnTimer(game.roomId, games, turnTimers, jest.fn());
+
+    const deadlineAtStart = game.turnDeadlineTs;
+    jest.advanceTimersByTime(3_000); // 3 ticks
+
+    expect(game.turnDeadlineTs).toBe(deadlineAtStart + 3_000);
+    expect(game.pendingAction).toBeDefined();
+    expect(game.pendingAction?.type).toBe('TargetSelection');
+    expect(lastEmittedState().timerPaused).toBe(true);
+  });
+
+  test('auto-resuelve al tope con TargetSelection: cancela la selección, pasa el turno y la carta sigue en mano', () => {
+    const game = createGame({
+      turnDeadlineTs: NOW + 5_000,
+      pendingAction: { type: 'TargetSelection', playerId: 'p1', cardId: 'c1' },
+      pauseStartedAt: NOW - (TIMER_PAUSE_MAX_MS - 500),
+    });
+    const games = new Map([[game.roomId, game]]);
+    const turnTimers = new Map<string, NodeJS.Timeout>();
+    const endTurn = jest.fn();
+    const handLengthBefore = game.players[0].hand.length;
+
+    scheduleTurnTimer(game.roomId, games, turnTimers, endTurn);
+
+    jest.advanceTimersByTime(1_000); // 1 tick → pausa total = TIMER_PAUSE_MAX_MS + 500
+
+    expect(game.pendingAction).toBeUndefined();
+    expect(game.pauseStartedAt).toBeUndefined();
+    expect(endTurn).toHaveBeenCalledWith(game.roomId);
+    // La carta no se descarta: sigue en mano
+    expect(game.players[0].hand.length).toBe(handLengthBefore);
+    expect(lastEmittedState().timerPaused).toBe(false);
+  });
+
   test('sin pendingAction: cuenta atrás normal y timerPaused=false', () => {
     const game = createGame({ turnDeadlineTs: NOW + 5_000 });
     const games = new Map([[game.roomId, game]]);

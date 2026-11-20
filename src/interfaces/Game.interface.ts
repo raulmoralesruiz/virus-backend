@@ -39,7 +39,7 @@ export interface GameState {
   turnDurationMs?: number;
   winner?: PublicPlayerInfo; // 🏆 jugador ganador si ya terminó
   history: HistoryEntry[]; // historial detallado de acciones
-  pendingAction?: ApparitionDecision;
+  pendingAction?: PendingAction;
   pauseStartedAt?: number; // epoch ms: cuándo comenzó la pausa del timer por pendingAction
   lastActionAt: number; // timestamp for inactivity check (last play/discard/draw)
 }
@@ -56,7 +56,7 @@ export interface PublicGameState {
   remainingSeconds: number;
   winner?: PublicPlayerInfo;
   history: HistoryEntry[];
-  pendingAction?: ApparitionDecision;
+  pendingAction?: PendingAction;
   timerPaused: boolean; // true mientras hay una decisión pendiente (el timer no cuenta)
 }
 
@@ -127,6 +127,14 @@ export interface ApparitionDecision {
   playerId: string;
   cardId: string;
 }
+
+export interface TargetSelection {
+  type: 'TargetSelection';
+  playerId: string;
+  cardId: string;
+}
+
+export type PendingAction = ApparitionDecision | TargetSelection;
 
 export type AnyPlayTarget =
   | PlayCardTarget
