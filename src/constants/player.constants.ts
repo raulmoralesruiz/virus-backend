@@ -9,4 +9,6 @@ export const PLAYER_CONSTANTS = {
   PLAYER_IDENTIFY: 'player:identify',
   PLAYER_IDENTIFIED: 'player:identified',
   PLAYER_RECONNECT: 'player:reconnect',
+
+  CLIENT_PING: 'client:ping',
 } as const;

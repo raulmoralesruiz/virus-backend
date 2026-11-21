@@ -70,6 +70,13 @@ const registerPlayerEvents = (io: Server, socket: Socket) => {
     });
   });
 
+  // Liveness probe del cliente: ack inmediato sin lógica de negocio.
+  socket.on(PLAYER_CONSTANTS.CLIENT_PING, (ack?: (value?: string) => void) => {
+    if (typeof ack === 'function') {
+      ack('pong');
+    }
+  });
+
   socket.on('disconnect', () => {
     clearPlayerSocketId(socket.id);
   });
