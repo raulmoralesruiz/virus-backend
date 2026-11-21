@@ -15,7 +15,9 @@
     "start": "node dist/server.js",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:dry": "DRY_RUN=1 bash scripts/deploy.sh"
   },
   "keywords": [],
   "license": "ISC",

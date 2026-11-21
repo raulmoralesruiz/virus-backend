@@ -11,6 +11,9 @@
 npm-debug.log
 yarn-error.log
 
+# deploy config (host/user de TrueNAS; ver .deployrc.example)
+.deployrc
+
 # IDEs and editors
 .idea/
 .project

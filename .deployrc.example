@@ -1,0 +1,8 @@
+# Copia este archivo a .deployrc y rellena (el .deployrc queda gitignored):
+#   cp .deployrc.example .deployrc
+DEPLOY_HOST=192.168.x.x
+DEPLOY_USER=raul
+# Carpeta REAL: el contenedor Docker `virus-backend` (node:20-alpine, puerto 3000)
+# monta /mnt/data-nas/www/virus/backend → /app y arranca `npm install && node
+# dist/server.js`. El --delete del deploy se limita a backend/dist/.
+DEPLOY_PATH=/mnt/data-nas/www/virus/backend
