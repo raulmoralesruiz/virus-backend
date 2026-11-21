@@ -88,6 +88,41 @@ describe('playFailedExperiment', () => {
     expect(g.discard.length).toBe(2); 
   });
 
+  test('MEDICINA: al curar un virus, la carta se descarta como Experimento Fallido (no como medicina)', () => {
+    const g = mkGame(2);
+    const organ: OrganOnBoard = {
+      id: 'org_infected',
+      kind: CardKind.Organ,
+      color: CardColor.Red,
+      attached: [{ id: 'virus1', kind: CardKind.Virus, color: CardColor.Red }],
+    };
+    g.public.players[1].board.push(organ);
+
+    const card = {
+      id: 'card_failed_exp',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.failedExperiment,
+    };
+    g.players[0].hand.push(card);
+
+    const res = playFailedExperiment(
+      g,
+      g.players[0],
+      0,
+      { playerId: 'p2', organId: organ.id, action: 'medicine' } as any
+    );
+
+    expect(res.success).toBe(true);
+    // La carta del descarte recupera su identidad original: al reciclarse el
+    // mazo debe volver a salir como Experimento Fallido, no como medicina.
+    expect(g.discard.find(c => c.id === 'card_failed_exp')).toMatchObject({
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.failedExperiment,
+    });
+  });
+
   test('MEDICINA: vacuna un órgano vacunado (lo inmuniza)', () => {
     const g = mkGame(2);
     const organ: OrganOnBoard = {
@@ -146,6 +181,41 @@ describe('playFailedExperiment', () => {
     // Debe haber eliminado la medicina
     expect(g.public.players[1].board[0].attached.length).toBe(0);
     expect(g.discard.length).toBe(2);
+  });
+
+  test('VIRUS: al neutralizar una vacuna, la carta se descarta como Experimento Fallido (no como virus)', () => {
+    const g = mkGame(2);
+    const organ: OrganOnBoard = {
+      id: 'org_vaccinated',
+      kind: CardKind.Organ,
+      color: CardColor.Red,
+      attached: [{ id: 'med1', kind: CardKind.Medicine, color: CardColor.Red }],
+    };
+    g.public.players[1].board.push(organ);
+
+    const card = {
+      id: 'card_failed_exp',
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.failedExperiment,
+    };
+    g.players[0].hand.push(card);
+
+    const res = playFailedExperiment(
+      g,
+      g.players[0],
+      0,
+      { playerId: 'p2', organId: organ.id, action: 'virus' } as any
+    );
+
+    expect(res.success).toBe(true);
+    // La carta del descarte recupera su identidad original: al reciclarse el
+    // mazo debe volver a salir como Experimento Fallido, no como virus.
+    expect(g.discard.find(c => c.id === 'card_failed_exp')).toMatchObject({
+      kind: CardKind.Treatment,
+      color: CardColor.Multi,
+      subtype: TreatmentSubtype.failedExperiment,
+    });
   });
 
   test('VIRUS: extirpa un órgano infectado', () => {
