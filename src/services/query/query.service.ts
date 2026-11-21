@@ -1,5 +1,6 @@
 import { Card } from '../../interfaces/Card.interface.js';
 import { GameState, PublicGameState } from '../../interfaces/Game.interface.js';
+import { TURN_DURATION_MS } from '../../constants/turn.constants.js';
 import { logger } from '../../utils/logger.js';
 
 // función reutilizable
@@ -16,6 +17,7 @@ export const mapToPublicState = (g: GameState): PublicGameState => {
     players: g.public.players,
     turnIndex: g.turnIndex,
     turnDeadlineTs: g.turnDeadlineTs,
+    turnDurationSeconds: Math.round((g.turnDurationMs ?? TURN_DURATION_MS) / 1000),
     remainingSeconds: remaining,
     winner: g.winner,
     history: g.history,

@@ -53,6 +53,7 @@ export interface PublicGameState {
   players: PublicPlayerInfo[];
   turnIndex: number;
   turnDeadlineTs: number;
+  turnDurationSeconds: number; // duración total del turno (denominador de la barra de progreso)
   remainingSeconds: number;
   winner?: PublicPlayerInfo;
   history: HistoryEntry[];
