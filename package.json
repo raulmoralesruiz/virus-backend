@@ -20,7 +20,7 @@
     "deploy:dry": "DRY_RUN=1 bash scripts/deploy.sh"
   },
   "keywords": [],
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.14.0",
   "dependencies": {
     "cors": "^2.8.5",
