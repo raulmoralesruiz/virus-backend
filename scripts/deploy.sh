@@ -15,12 +15,16 @@
 #   DEPLOY_USER  usuario SSH con escritura en la ruta destino
 #   DEPLOY_PATH  (opcional, por defecto /mnt/data-nas/www/virus/backend —
 #                el contenedor Docker `virus-backend` (node:20-alpine, puerto
-#                3000) monta ESO como /app y arranca `npm install && node
-#                dist/server.js`)
+#                3000) monta ESO como /app y arranca
+#                `corepack enable && pnpm install --frozen-lockfile --prod &&
+#                node dist/server.js`)
 #
 # ⚠️ El --delete queda acotado a la subcarpeta dist/ del destino: el volumen
-#    backend/ contiene también node_modules/ (creado por npm install dentro
+#    backend/ contiene también node_modules/ (creado por pnpm install dentro
 #    del contenedor), que NO debe borrarse.
+#
+# Sincroniza: dist/, package.json y pnpm-lock.yaml (lockfile canónico; el
+# contenedor instala con --frozen-lockfile a partir de él).
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -90,11 +94,15 @@ RSYNC=(rsync -az --stats --mkpath --delete)
 echo "→ rsync dist/ → ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/dist/"
 "${RSYNC[@]}" dist/ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/dist/"
 
-echo "→ rsync package.json → ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+echo "→ rsync package.json + pnpm-lock.yaml → ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "  (dry-run: no se transfirió)"
 else
-  rsync -az --stats --mkpath package.json "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+  rsync -az --stats --mkpath package.json pnpm-lock.yaml "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+  # package-lock.json (legado npm) ya no es canónico: si quedó en el
+  # volumen, se elimina para que no genere ambigüedad.
+  ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+    "rm -f '${DEPLOY_PATH}/package-lock.json'"
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
