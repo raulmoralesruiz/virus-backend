@@ -20,4 +20,6 @@ export const GAME_CONSTANTS = {
 
   GAME_SELECTION_START: 'game:selection-start', // cliente → server: comienza selección de objetivo (pausa el timer)
   GAME_SELECTION_CANCEL: 'game:selection-cancel', // cliente → server: cancela selección de objetivo (reanuda el timer)
+
+  EMOTE: 'game:emote', // cliente → server: reacción (emote); server → sala: broadcast { roomId, playerId, emote, at }
 } as const;

@@ -124,4 +124,8 @@ export const GAME_ERRORS = {
     code: 'ORGAN_NOT_INFECTED',
     message: 'El órgano no está infectado',
   },
+  EMOTE_INVALID: {
+    code: 'EMOTE_INVALID',
+    message: 'Reacción no válida',
+  },
 } as const;

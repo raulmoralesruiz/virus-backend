@@ -27,6 +27,7 @@ import {
   HistoryEntry,
 } from '../interfaces/Game.interface.js';
 import { GAME_ERRORS } from '../constants/error.constants.js';
+import { EMOTES } from '../constants/emote.constants.js';
 import { Card, CardKind, TreatmentSubtype } from '../interfaces/Card.interface.js';
 import { describeCard, describeOrganLabel } from '../utils/card-label.utils.js';
 import { pushHistoryEntry } from '../utils/history.utils.js';
@@ -536,6 +537,37 @@ const registerGameEvents = (io: Server, socket: Socket) => {
 
     // 👈 importante: notificar que ya no hay ganador
     io.to(roomId).emit(GAME_CONSTANTS.GAME_END, { roomId, winner: null });
+  });
+
+  // 🎉 Reacción (emote): solo se enruta a toda la sala (incluido el remitente).
+  // No requiere partida en curso: es social (valida, celebra, se despide).
+  // Sin persistencia ni efectos sobre el estado de la partida.
+  socket.on(GAME_CONSTANTS.EMOTE, ({ roomId, emote }: { roomId: string; emote: string }) => {
+    const playerId = socket.data?.playerId;
+    if (!playerId) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_PLAYER);
+      return;
+    }
+
+    const room = getRooms().find(r => r.id === roomId);
+    if (!room) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_ROOM);
+      return;
+    }
+
+    if (!room.players.some(p => p.id === playerId)) {
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NOT_IN_ROOM);
+      return;
+    }
+
+    if (!EMOTES.includes(emote)) {
+      logger.warn(`[${GAME_CONSTANTS.EMOTE}] room=${roomId} player=${playerId} emote inválido=${emote}`);
+      socket.emit(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.EMOTE_INVALID);
+      return;
+    }
+
+    logger.info(`[${GAME_CONSTANTS.EMOTE}] room=${roomId} player=${playerId} emote=${emote}`);
+    io.to(roomId).emit(GAME_CONSTANTS.EMOTE, { roomId, playerId, emote, at: Date.now() });
   });
 };
 

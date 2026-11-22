@@ -151,3 +151,67 @@ describe('game:selection-start / game:selection-cancel', () => {
     expect(io.to).not.toHaveBeenCalled();
   });
 });
+
+describe('game:emote (reacción social)', () => {
+  test('enruta el emote a toda la sala con el id del jugador y un timestamp', () => {
+    const { io, emit } = mkIo();
+    const socket = mkSocket('p1');
+    registerGameEvents(io, socket as unknown as Socket);
+
+    socket.trigger(GAME_CONSTANTS.EMOTE, { roomId: 'r1', emote: '👍' });
+
+    expect(io.to).toHaveBeenCalledWith('r1');
+    expect(emit).toHaveBeenCalledWith(GAME_CONSTANTS.EMOTE, {
+      roomId: 'r1',
+      playerId: 'p1',
+      emote: '👍',
+      at: expect.any(Number),
+    });
+    expect(socket.emit).not.toHaveBeenCalled();
+  });
+
+  test('rechaza si el jugador no está identificado (NO_PLAYER)', () => {
+    const { io } = mkIo();
+    const socket = mkSocket();
+    registerGameEvents(io, socket as unknown as Socket);
+
+    socket.trigger(GAME_CONSTANTS.EMOTE, { roomId: 'r1', emote: '🔥' });
+
+    expect(socket.emit).toHaveBeenCalledWith(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_PLAYER);
+    expect(io.to).not.toHaveBeenCalled();
+  });
+
+  test('rechaza si la sala no existe (NO_ROOM)', () => {
+    const { io } = mkIo();
+    const socket = mkSocket('p1');
+    registerGameEvents(io, socket as unknown as Socket);
+
+    socket.trigger(GAME_CONSTANTS.EMOTE, { roomId: 'no-existe', emote: '🔥' });
+
+    expect(socket.emit).toHaveBeenCalledWith(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NO_ROOM);
+    expect(io.to).not.toHaveBeenCalled();
+  });
+
+  test('rechaza si el jugador no pertenece a la sala (NOT_IN_ROOM)', () => {
+    // la sala r1 del mock tiene p1 y p2; p9 no pertenece
+    const { io } = mkIo();
+    const socket = mkSocket('p9');
+    registerGameEvents(io, socket as unknown as Socket);
+
+    socket.trigger(GAME_CONSTANTS.EMOTE, { roomId: 'r1', emote: '🔥' });
+
+    expect(socket.emit).toHaveBeenCalledWith(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.NOT_IN_ROOM);
+    expect(io.to).not.toHaveBeenCalled();
+  });
+
+  test('rechaza emotes fuera de la whitelist (EMOTE_INVALID)', () => {
+    const { io } = mkIo();
+    const socket = mkSocket('p1');
+    registerGameEvents(io, socket as unknown as Socket);
+
+    socket.trigger(GAME_CONSTANTS.EMOTE, { roomId: 'r1', emote: '🚀' });
+
+    expect(socket.emit).toHaveBeenCalledWith(GAME_CONSTANTS.GAME_ERROR, GAME_ERRORS.EMOTE_INVALID);
+    expect(io.to).not.toHaveBeenCalled();
+  });
+});
