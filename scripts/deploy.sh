@@ -2,9 +2,10 @@
 # Deploy de virus-backend (Node/Express + socket.io) → TrueNAS (red local)
 #
 # Uso:
-#   pnpm run deploy         # build + sync a TrueNAS
+#   pnpm run deploy         # build + sync a TrueNAS + reinicio del contenedor
 #   pnpm run deploy:dry     # dry-run: muestra lo que se transferiría, sin tocar nada
 #   NO_BUILD=1 pnpm run deploy   # sync sin reconstruir (dist/ ya existe)
+#   DEPLOY_CONTAINER=       # (opcional) vacío = sin reinicio del contenedor
 #
 # Cada deploy real crea un backup automático del estado anterior en
 # www/virus/backups/ (sin node_modules; retención: 5 últimos por componente).
@@ -38,6 +39,9 @@ fi
 DEPLOY_HOST="${DEPLOY_HOST:-}"
 DEPLOY_USER="${DEPLOY_USER:-$USER}"
 DEPLOY_PATH="${DEPLOY_PATH:-/mnt/data-nas/www/virus/backend}"
+# Contenedor que corre el dist: se reinicia al final del deploy para cargar
+# el código nuevo. Vacío = solo sincronizar, sin reiniciar.
+DEPLOY_CONTAINER="${DEPLOY_CONTAINER:-virus-backend}"
 
 if [[ -z "$DEPLOY_HOST" ]]; then
   echo "error: DEPLOY_HOST no definido." >&2
@@ -108,5 +112,15 @@ fi
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "✓ dry-run completo (no se transfirió nada)"
 else
+  # --- reinicio del contenedor ------------------------------------------------
+  # El contenedor corre `node dist/server.js` sobre el volumen: sin restart
+  # sigue con el código anterior en memoria. Ya nos ha mordido (deploy de
+  # emotes sin restart → NAS sin handler, botones inertes).
+  if [[ -n "$DEPLOY_CONTAINER" ]]; then
+    echo "→ reiniciando contenedor $DEPLOY_CONTAINER (carga el nuevo dist)"
+    ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" "docker restart '$DEPLOY_CONTAINER'"
+  else
+    echo "→ ⚠️ DEPLOY_CONTAINER vacío: reinicia el contenedor a mano."
+  fi
   echo "✓ deploy completado"
 fi
